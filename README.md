@@ -67,15 +67,15 @@ This section provides a summary of the project architecture
 
 - [x] src
 	- [x] modules (Folder) <!-- Write models for the modules --!>
-		- [x] _Module Name_ (Folder)
+		- [x] _ModuleName_ (Folder)
 			- [x] OutScribed.Modules._ModuleName_.Application <!-- e.g. OutScribed.Modules.Onboarding.Application --!>
 				- [x] Features : (Folder) <!-- Commands --!>
-	 				- [ ] _Feature Name_  (Folder) <!-- e.g. SendToken --!>
-		 			- [ ] _Feature Name_Endpoint (Class) <!-- Uses FastEndpoint e.g. SendTokenEndpoint --!>
-	 				- [ ] _Feature Name_Request (Class) <!-- Incoming request e.g. SendTokenRequest --!>
-	 				- [ ] _Feature Name_Response (Class) <!-- Outgoing response e.g. SendTokenResponse --!>
-	 				- [ ] _Feature Name_Validator (Class) <!-- Uses FluentValidation e.g. SendTokenValidator --!>
-	 				- [ ] _Feature Name_Service (Class) <!-- Work flow/ Execution e.g. SendTokenService --!>
+	 				- [ ] _FeatureName_  (Folder) <!-- e.g. SendToken --!>
+		 			- [ ] _FeatureNameEndpoint_ (Class) <!-- Uses FastEndpoint e.g. SendTokenEndpoint --!>
+	 				- [ ] _FeatureNameRequest_ (Class) <!-- Incoming request e.g. SendTokenRequest --!>
+	 				- [ ] _FeatureNameResponse_ (Class) <!-- Outgoing response e.g. SendTokenResponse --!>
+	 				- [ ] _FeatureNameValidator_ (Class) <!-- Uses FluentValidation e.g. SendTokenValidator --!>
+	 				- [ ] _FeatureNameService_ (Class) <!-- Work flow/ Execution e.g. SendTokenService --!>
       				- [x] Repository
           				- [ ] _Module Name_Repository <!-- e.g. DiscoveryRepository --!> 
 	 		- [x] OutScribed.Modules._ModuleName_.Domain  <!-- e.g. OutScribed.Modules.Onboarding.Domain --!>
@@ -88,16 +88,16 @@ This section provides a summary of the project architecture
    		- [ ] Middlewares 
 	- [x] OutScribed.Application.Queries (Project) <!-- Read models --!>
 	 	- [x] DTOs (Folder) 
-	 		- [x] _Module Name_ (Folder) <!-- e.g. Publishing --!>
-				- [ ] _DTO Name_ (Class) <!-- LoadInsightDetail --!>
+	 		- [x] _ModuleName_ (Folder) <!-- e.g. Publishing --!>
+				- [ ] _DtoName_ (Class) <!-- LoadInsightDetail --!>
 	 	- [x] Features (Folder) <!-- Queries --!>
-	 		- [x] _Module Name_ (Folder) <!-- e.g. Tales --!>
-				- [x] _Feature Name_  (Folder) <!-- e.g. GetComments --!>
-					- [ ] _Feature Name_Endpoint (Class) <!-- Uses FastEndpoint --!>
-					- [ ] _Feature Name_Request (Class) <!-- Incoming request --!>
-					- [ ] _Feature Name_Response (Class) <!-- Outgoing response --!>
-					- [ ] _Feature Name_Validator (Class) <!-- Uses FluentValidation --!>
-					- [ ] _Feature Name_Service (Class) <!-- Execution --!>
+	 		- [x] _ModuleName_ (Folder) <!-- e.g. Tales --!>
+				- [x] _FeatureName_  (Folder) <!-- e.g. GetComments --!>
+					- [ ] _FeatureNameEndpoint_ (Class) <!-- Uses FastEndpoint --!>
+					- [ ] _FeatureNameRequest_ (Class) <!-- Incoming request --!>
+					- [ ] _FeatureNameResponse_ (Class) <!-- Outgoing response --!>
+					- [ ] _FeatureNameValidator_ (Class) <!-- Uses FluentValidation --!>
+					- [ ] _FeatureNameService_ (Class) <!-- Execution --!>
 	- [x] OutScribed.Infrastructure (Project) <!-- Database, Email services  --!>
  		- [x] EmailServices (folder)
    		- [x] EventPublishers (folder)
@@ -110,12 +110,12 @@ This section provides a summary of the project architecture
 		 	- [x] Reads (Folder) 
 				 - [x] Configurations (Folder)
 				 	- [ ] ReadsDbContext  (Class)
-				 	- [x] _Module Name_ (Folder) <!-- e.g. Identity --!>
-				 		- [ ] _DTO_Configuration (Class) <!-- e.g. AccountDetailConfiguration --!>
+				 	- [x] _ModuleName_ (Folder) <!-- e.g. Identity --!>
+				 		- [ ] _DtoNameConfiguration_ (Class) <!-- e.g. AccountDetailConfiguration --!>
 		 	- [x] Writes (Folder) 
 		 		- [x] _Module Name_  (Folder) <!-- e.g. Analysis --!>
-		 			- [ ] _AggregateRoot Name_Configuration (Class) <!-- e.g. InsightConfiguration --!>
-		 			- [ ] _Module Name_DbContext (Class) <!-- AnalysisDbContext --!>
+		 			- [ ] _AggregateRootNameConfiguration_ (Class) <!-- e.g. InsightConfiguration --!>
+		 			- [ ] _ModuleNameDbContext_ (Class) <!-- AnalysisDbContext --!>
       		- [x] Repositories
 	- [x] OutScribed.SharedKernel (Project) <!-- Common interfaces and classes --!>
 	 	- [x] Abstract (Folder) 
@@ -143,21 +143,20 @@ This section provides description of the onboarding work flows
 ** Note: Can/should email address be verified to be valid & active?
 
 ### 3.2 Models
-* TempUser : AggregateRoot
-** Id (Ulid)
-** EmailAddress (string)
-** CreatedAt (DateTime)
-** LastUpdated (DateTime) : Monitors last time a token was resent or token verification attempt was made
-** VerifiedAttempts (int) : Monitors number of verification attempts
-** IpAddress (string)
-** IsVerified (bool) : If true, token is verified
-** LockUpdates (bool) : If true, no token resends or verifications
-** LockUntil (DateTime) : Time until lockUpDates is lifted
-** ResendsCounter (int) : Monitors token resends
-** One-time-token : ValueObject
-*** Token (int) : Generated
-*** ExpiresAt (DateTime) : Date created + 10 minutes
-
+- [x] TempUser (AggregateRoot)
+	- [ ] Id (Ulid)
+	- [ ] EmailAddress (string)
+	- [ ] CreatedAt (DateTime)
+	- [ ] LastUpdated (DateTime) <!-- Monitors last time a token was resent or token verification attempt was made --!>
+	- [ ] VerifiedAttempts (int) <!-- Monitors number of verification attempts --!>
+	- [ ] IpAddress (string)
+	- [ ] IsVerified (bool) <!-- If true, token is verified --!>
+	- [ ] LockUpdates (bool) <!-- If true, no token resends or verifications --!>
+	- [ ] LockUntil (DateTime) <!-- Time until lockUpDates is lifted --!>
+	- [ ] ResendsCounter (int) <!-- Monitors token resends --!>
+	- [ ] One-time-token : ValueObject
+		- [ ] Token (int) <!-- Generated --!>
+		- [ ] ExpiresAt (DateTime) <!-- Date created + 10 minutes --!>
 
 ### 3.3 Business rules
 * There must be at least 60 seconds between resends of verification tokens
@@ -166,33 +165,31 @@ This section provides description of the onboarding work flows
 * Verification tokens cannot be sent to the same IpAddress within a 10 minutes span
 * Life span of a verification token is 10 minutes
 
-
 ### 3.4 Commands Summary
-* SendToken : Creates account, Sends generated token to user
-* ResendToken : Regeneartes a token and sends to user
-* VerifyToken : Verifies token on file
-
+* SendToken <!-- Creates account, Sends generated token to user --!>
+* ResendToken <!-- Regeneartes a token and sends to user --!>
+* VerifyToken <!-- Verifies token on file --!>
 
 ### 3.5 SendToken
 * Creates a new temporary account, generates and returns a verification token
 
 #### 3.5.1 Request
-* EmailAddress (string): Email address from user
-* IpAddress (string): From HttpRequest
+* EmailAddress (string) <!-- Email address from user --!>
+* IpAddress (string) <!-- From HttpRequest --!>
 
 #### 3.5.2 Response
-* Id (Ulid): Id of TempUser
+* Id (Ulid) <!-- Id of TempUser --!>
 
 #### 3.5.3 Validation
-* EmailAddress : Not null. Not empty. 255.
+* EmailAddress <!-- Not null. Not empty. 255. --!>
 
 #### 3.5.4 Work flow
 * Receives request and performs validation then forwards to service
 * Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, it jails IpAddress and rejects the request.
 * Checks if TempUser by email address already exists
-** Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, rejects the request.
-** Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends and reject request.
-** Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5.
+	* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, rejects the request.
+	* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends and reject request.
+	* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5.
 * Else system generates a new verification token and creates a new TempUser
 * Schedules an email with verification token
 * Returns response
@@ -201,14 +198,14 @@ This section provides description of the onboarding work flows
 * Generates and returns a verification token
 
 #### 3.6.1 Request
-* Id (Ulid) : From frontend
-* IpAddress (string): From HttpRequest
+* Id (Ulid) 
+* IpAddress (string) <!-- From HttpRequest
 
 #### 3.6.2 Response
 * Ok
 
 #### 3.6.3 Validation
-* EmailAddress : Not null. Not empty. 255.
+* EmailAddress <!-- Not null. Not empty. 255.
 
 #### 3.6.4 Work flow
 * Receives request
@@ -225,14 +222,14 @@ This section provides description of the onboarding work flows
 * Verifies a verification token
 
 #### 3.7.1 Request
-* Id (Ulid): From frontend
-* IpAddress (string): From HttpRequest
+* Id (Ulid)
+* IpAddress (string) <!-- From HttpRequest
 
 #### 3.7.2 Response
 * Ok
 
 #### 3.7.3 Validation
-* Id : Not null. Not empty.
+* Id <!-- Not null. Not empty.
 
 #### 3.7.4 Work flow
 * Receives request
@@ -243,6 +240,8 @@ This section provides description of the onboarding work flows
 * System compares the verification token, if false, it increments the VerificationAttempts and returns error to frontend.
 * Else marks the IsVerified as true.
 * Returns request
+
+---
 
 ## 4. Write Model: Identity
 
@@ -258,52 +257,52 @@ This section provides description of the identity work flows.
 * It allows users to reset forgotten passwords or update their passwords
 
 ### 4.2 Models
-* Account  (AggregateRoot)
-** Id (Ulid)
-** EmailAddress (string)
-** RegisteredAt (DateTime) : Timestamp of registration
-** Username (string) : Unique public identifier
-** OneTimeToken (ValueObject) : Holds token used in password reset e.g. Token, ExpireAt.
---> Token (int) : Generated
---> ExpiresAt (DateTime) : Date created + 10 minutes
-** RefreshToken (ValueObject) : Holds token used in JWT authentication e.g. Token, ExpireAt.
---> Token (int) : Generated
---> ExpiresAt (DateTime) : Date created + 300 minutes
-** Password (ValueObject) : Holds password info e.g. Hash, Salt.
---> Hash (string) : Generated from received password
---> Salt (string) : Generated
-** Profile (Entity) : Holds profile info e.g. Title, Bio, Photo, IsAnnonymous, etc.
---> Title (string) : User's title. No distinction between first, middle, and last name to accomodate businesses, etc.
---> AttachedAt (DateTime) : Date profile was first attached
---> IsAnnonymous (bool) : If true, user's title, bio, photo, and contact details would not be publicly displayed
---> Bio (string) : Html content. Requires cleanup before storage
---> Photo (string) : Location of photo on file. Storage is on DigitalOcean Space using AW3 SDK
-** Admin (Entity) Holds admin e.g. Type, IsActive etc.
---> RoleType (enum) : Type of admin e.g. SuperAdmin, ContentModerator, Publisher, etc.
---> AssignedAt (DateTime) : Timestamp role was assigned
---> IsActive (bool) : If true, role can perform admin activities. Once assigned, admin roles are not removed. ***Is this best policy***
---> LastUpdated (DateTime) : Last admin was deactivated/activated. Defaults to AssignedAt
-** LoginHistory (Entity) Holds info about user's logins e.g. IpAddress, etc. Account can have 0 or multiple LoginHistory
---> LoggedAt (DateTime) : Timestamp of login
---> IpAddress (string) : IpAddress used in login
-** Contact (Entity) Holds info about user's contacts e.g. ContactType, etc. Account can have 0 or multiple Contact.
---> CreatedAt (DateTime) : Timestamp of first creation
---> LastUpdated (DateTime) : Timestamp of last change. Defaults to CreatedAt
---> Text (string) : Contact text
---> ContactType (enum) : Users can only use pre-defined contact type e.g. Facebook, EmailAddress, etc.
-** Notification (Entity) Holds info about user's activity logs e.g. NotificationType, etc. Account can have 0 or multiple Notification.
---> HappendedAt (DateTime) : Timestamp of activity
---> HasRead (bool) : If true, notification has been read
---> Text (string) : Details of notification
---> ContactType (enum) : Users can only use pre-defined contact type e.g. Facebook, EmailAddress, etc.
---> NotificationType (enum) : Content affected e.g. Account, Tale, etc.
-** Writer (Entity) : Holds writer info e.g. Address, Country, etc.
---> Address (string) : Writer's address information
---> AppliedAt (DateTime) : Timestamp of application to become writer
---> ApprovedAt (DateTime) : Timestamp of approval to become writer
---> IsActive (bool) : If true, has privilege to publish tale
---> Country (enum) : Country of origin/location
---> Application (string) : Location of writer's application in Adobe PDF on file. Storage is on DigitalOcean Space using AW3 SDK
+- [x] Account  (AggregateRoot)
+	- [ ] Id (Ulid)
+	- [ ] EmailAddress (string)
+	- [ ] RegisteredAt (DateTime) <!-- Timestamp of registration --!>
+	- [ ] Username (string) <!-- Unique public identifier --!>
+ 	- [x] OneTimeToken (ValueObject) <!-- Holds token used in password reset e.g. Token, ExpireAt. --!>
+		 - [ ] Token (int) <!-- Generated --!>
+		 - [ ] ExpiresAt (DateTime) <!-- Date created + 10 minutes --!>
+	- [x] RefreshToken (ValueObject) <!-- Holds token used in JWT authentication e.g. Token, ExpireAt. --!>
+		 - [ ] Token (int) <!-- Generated --!>
+		 - [ ] ExpiresAt (DateTime) <!-- Date created + 300 minutes --!>
+	- [x] Password (ValueObject) <!-- Holds password info e.g. Hash, Salt. --!>
+		 - [ ] Hash (string) <!-- Generated from received password --!>
+		 - [ ] Salt (string) <!-- Generated --!>
+	- [x] Profile (Entity) <!-- Holds profile info e.g. Title, Bio, Photo, IsAnnonymous, etc. --!>
+		 - [ ] Title (string) <!-- User's title. No distinction between first, middle, and last name to accomodate businesses, etc. --!>
+		 - [ ] AttachedAt (DateTime) <!-- Date profile was first attached --!>
+		 - [ ] IsAnnonymous (bool) <!-- If true, user's title, bio, photo, and contact details would not be publicly displayed --!>
+		 - [ ] Bio (string) <!-- Html content. Requires cleanup before storage --!>
+		 - [ ] Photo (string) <!-- Location of photo on file. Storage is on DigitalOcean Space using AW3 SDK --!>
+	- [x] Admin (Entity) <!-- Holds admin e.g. Type, IsActive etc. --!>
+		 - [ ] RoleType (enum) <!-- Type of admin e.g. SuperAdmin, ContentModerator, Publisher, etc. --!>
+		 - [ ] AssignedAt (DateTime) <!-- Timestamp role was assigned --!>
+		 - [ ] IsActive (bool) <!-- If true, role can perform admin activities. Once assigned, admin roles are not removed. ***Is this best policy*** --!>
+		 - [ ] LastUpdated (DateTime) <!-- Last admin was deactivated/activated. Defaults to AssignedAt --!>
+	- [x] LoginHistory (Entity) <!-- Holds info about user's logins e.g. IpAddress, etc. Account can have 0 or multiple LoginHistory --!>
+		 - [ ] LoggedAt (DateTime) <!-- Timestamp of login --!>
+		 - [ ] IpAddress (string) <!-- IpAddress used in login --!>
+	- [x] Contact (Entity) <!-- Holds info about user's contacts e.g. ContactType, etc. Account can have 0 or multiple Contact. --!>
+		 - [ ] CreatedAt (DateTime) <!-- Timestamp of first creation --!>
+		 - [ ] LastUpdated (DateTime) <!-- Timestamp of last change. Defaults to CreatedAt --!>
+		 - [ ] Text (string) <!-- Contact text --!>
+		 - [ ] ContactType (enum) <!-- Users can only use pre-defined contact type e.g. Facebook, EmailAddress, etc. --!>
+	- [x] Notification (Entity) <!-- Holds info about user's activity logs e.g. NotificationType, etc. Account can have 0 or multiple Notification. --!>
+		 - [ ] HappendedAt (DateTime) <!-- Timestamp of activity --!>
+		 - [ ] HasRead (bool) <!-- If true, notification has been read --!>
+		 - [ ] Text (string) <!-- Details of notification --!>
+		 - [ ] ContactType (enum) <!-- Users can only use pre-defined contact type e.g. Facebook, EmailAddress, etc. --!>
+		 - [ ] NotificationType (enum) <!-- Content affected e.g. Account, Tale, etc. --!>
+	- [x] Writer (Entity) <!-- Holds writer info e.g. Address, Country, etc. --!>
+		 - [ ] Address (string) <!-- Writer's address information --!>
+		 - [ ] AppliedAt (DateTime) <!-- Timestamp of application to become writer --!>
+		 - [ ] ApprovedAt (DateTime) <!-- Timestamp of approval to become writer --!>
+		 - [ ] IsActive (bool) <!-- If true, has privilege to publish tale --!>
+		 - [ ] Country (enum) <!-- Country of origin/location --!>
+		 - [ ] Application (string) <!-- Location of writer's application in Adobe PDF on file. Storage is on DigitalOcean Space using AW3 SDK --!>
 
 ### 4.3 Business rules
 * Duplicate email address and username are not allowed
@@ -317,20 +316,20 @@ This section provides description of the identity work flows.
 * 
 
 ### 4.4 Commands Summary
-* CreateAccount : Creates new account
-* LoginUser : Verifes a user's credentials
-* LogoutUser : Resets user's refreshToken, other logout activities.
-* UpdateProfile : Updates user's title, bio, etc.
-* UpdateContact : Create or update a user's contact
-* SendToken : Generates and sends a password reset token
-* ResendToken : Generates and resends a password reset token
-* ResetPassword : Verifies a password reset token and changes user's password
-* ChangePassword : Updates a user's password
-* ApplyAsWriter : Attaches a new application to become a writer
-* ApproveWriter : Approves a writer application
-* UpdateWriter : Updates a writer's privilege
-* AssignRole : Assigns a role to a user
-* UpdateRole : Updates a user's role e.g. deactivate role or change role
+* CreateAccount <!-- Creates new account --!>
+* LoginUser <!-- Verifes a user's credentials --!>
+* LogoutUser <!-- Resets user's refreshToken, other logout activities. --!>
+* UpdateProfile <!-- Updates user's title, bio, etc. --!>
+* UpdateContact <!-- Create or update a user's contact --!>
+* SendToken <!-- Generates and sends a password reset token --!>
+* ResendToken <!-- Generates and resends a password reset token --!>
+* ResetPassword <!-- Verifies a password reset token and changes user's password --!>
+* ChangePassword <!-- Updates a user's password --!>
+* ApplyAsWriter <!-- Attaches a new application to become a writer --!>
+* ApproveWriter <!-- Approves a writer application --!>
+* UpdateWriter <!-- Updates a writer's privilege --!>
+* AssignRole <!-- Assigns a role to a user --!>
+* UpdateRole <!-- Updates a user's role e.g. deactivate role or change role --!>
 *  
 
 ### 4.5 CreateAccount
@@ -339,7 +338,7 @@ This section provides description of the identity work flows.
 * This stage assumes the user's email address is verified
 
 #### 4.5.1 Request
-* Id (Ulid): Id of TempUser from onboarding. Attaches by frontend
+* Id (Ulid) <!-- Id of TempUser from onboarding. Attaches by frontend --!>
 * Username (string)
 * Password (string)
 
@@ -347,9 +346,9 @@ This section provides description of the identity work flows.
 * Ok
 
 #### 4.5.3 Validation
-* Username : Not null. Not empty. 20.
-* Password : Not null. Not empty. 8.
-* Id : Not null.
+* Username <!-- Not null. Not empty. 20. --!>
+* Password <!-- Not null. Not empty. 8. --!>
+* Id <!-- Not null. --!>
 
 #### 4.5.4 Work flow
 * Receives request
