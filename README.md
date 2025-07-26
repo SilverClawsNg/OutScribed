@@ -118,9 +118,11 @@ This section provides a summary of the project architecture
 		 			- [ ] _ModuleNameDbContext_ (Class) <!-- AnalysisDbContext --!>
       		- [x] Repositories
 	- [x] OutScribed.SharedKernel (Project) <!-- Common interfaces and classes --!>
-	 	- [x] Abstract (Folder) 
+	 	- [x] Abstract (Folder)
+		- [x] Interfaces
 	 	- [x] Enums (Folder) 
-	   	- [x] Exceptions (Folder) 
+	   	- [x] Exceptions (Folder)
+    		- [x] Interfaces
 	   	- [x] Utilities (Folder) 
 			 - [ ] IdGenerator (Class) <!-- Generates ID for entities --!>
 			 - [ ] HtmlContentProcessor (Class) <!-- Cleans Html content before storage --!>
@@ -184,14 +186,15 @@ This section provides description of the onboarding work flows
 * EmailAddress <!-- Not null. Not empty. 255. --!>
 
 #### 3.5.4 Work flow
-* Receives request and performs validation then forwards to service
-* Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, it jails IpAddress and rejects the request.
+* Receives request
+* Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, publish an event to jail IpAddress and throw new exception.
 * Checks if TempUser by email address already exists
-	* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, rejects the request.
-	* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends and reject request.
-	* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5.
-* Else system generates a new verification token and creates a new TempUser
+	* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
+	* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes and throw new exception.
+	* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, save changes, and throw new exception.
+* Else generates a new verification token and creates a new TempUser
 * Schedules an email with verification token
+* Save changes
 * Returns response
 
 ### 3.6 ResendToken
@@ -199,7 +202,6 @@ This section provides description of the onboarding work flows
 
 #### 3.6.1 Request
 * Id (Ulid) 
-* IpAddress (string) <!-- From HttpRequest
 
 #### 3.6.2 Response
 * Ok
@@ -208,14 +210,15 @@ This section provides description of the onboarding work flows
 * EmailAddress <!-- Not null. Not empty. 255.
 
 #### 3.6.4 Work flow
-* Receives request
-* Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, it jails IpAddress and rejects the request.
-* Checks if TempUser exists with Id. If false, it rejects the request.
-* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, rejects the request.
-* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends and reject request.
-* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5.
+* Receives request and performs validation then forwards to service
+* Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, publish event to jail IpAddress and throw new exception.
+* Checks if TempUser exists with Id. If false, throw new exception.
+* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
+* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes, and throw new exception.
+* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw new exception.
 * Else generates a new verification token and creates a new TempUser
 * Schedules an email with verification token
+* Save changes
 * Returns response
 
 ### 3.7 VerifyToken
@@ -233,10 +236,11 @@ This section provides description of the onboarding work flows
 
 #### 3.7.4 Work flow
 * Receives request
-* Checks if TempUser exists with Id. If false, it rejects the request.
-* Checks if TempUser is already verified and rejects the request.
-* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, rejects the request.
-* Checks if too many verification attempts i.e. LastUpdated is less than 10 minutes and VerifiedAttempts is 5. If true, rejects the request.
+* Checks if TempUser exists with Id. If false, throw new exception.
+* Checks if TempUser is already verified, throw new exception.
+* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
+* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes and throw new exception.
+* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw new exception.
 * System compares the verification token, if false, it increments the VerificationAttempts and returns error to frontend.
 * Else marks the IsVerified as true.
 * Returns request
@@ -311,9 +315,6 @@ This section provides description of the identity work flows.
 * There is a limit of 5 verification attempts within 10 minutes span
 * Verification tokens cannot be sent to the same IpAddress within a 10 minutes span
 * Life span of a verification token is 10 minutes
-* 
-* 
-* 
 
 ### 4.4 Commands Summary
 * CreateAccount <!-- Creates new account --!>
@@ -330,7 +331,6 @@ This section provides description of the identity work flows.
 * UpdateWriter <!-- Updates a writer's privilege --!>
 * AssignRole <!-- Assigns a role to a user --!>
 * UpdateRole <!-- Updates a user's role e.g. deactivate role or change role --!>
-*  
 
 ### 4.5 CreateAccount
 * Creates a new main account. 
@@ -338,12 +338,12 @@ This section provides description of the identity work flows.
 * This stage assumes the user's email address is verified
 
 #### 4.5.1 Request
-* Id (Ulid) <!-- Id of TempUser from onboarding. Attaches by frontend --!>
+* Id (Ulid) <!-- Id of TempUser from onboarding. Attached by frontend --!>
 * Username (string)
 * Password (string)
 
 #### 4.5.2 Response
-* Ok
+* IsSuccessful (bool) <!-- If false, duplicate email address or username was found.
 
 #### 4.5.3 Validation
 * Username <!-- Not null. Not empty. 20. --!>
@@ -352,6 +352,170 @@ This section provides description of the identity work flows.
 
 #### 4.5.4 Work flow
 * Receives request
-* Gets email address from TempUser with Id. If no record found, throws an exception
+* Gets TempUser with Id. If no record found, throws an exception.
+* If record ws found, checks if account has been verified i.e. IsVerifed == true. If false, throws an exception.
+* Checks if duplicate email address or username exists. If record is found, it would be assumed this is a user who have earlier registered. Returns response (IsSuccessful = false)
+* Else hash password and generate Salt
+* Create a new account
+* Create and attach a Notification
+* Save changes
+* Returns response (IsSuccessFul = true).
+
+### 4.6 LoginAccount
+* Logs a user into account 
+* After a user is logged in, the title, bio, photo, contacts, etc. is sent back. This would be stored on the storage of user's device for easier retrieval.
+
+#### 4.6.1 Request
+* Username (string)
+* Password (string)
+
+#### 4.6.2 Response
+* Token (string) <!-- Generated and used in JWT authentication --!>
+* RefreshToken (string) <!-- Used in JWT authentication --!>
+* Title (string)
+* Bio (string) 
+* Photo (string)
+* EmailAddress (string)
+* Contacts (List) <!-- List of user's contact i.e. type and text --!>
+* RoleType (enum) <!-- 0 if no role --!>
+* RegisteredAt (DateTime) <!-- Date of user registration
+* ViewsCount (int) <!-- number of proview views --!>
+* FollowersCount (int) <!-- Number of followers --!>
+* IsAnnonymous (bool)
+
+#### 4.6.3 Validation
+* Username <!-- Not null. Not empty. 20. --!>
+* Password <!-- Not null. Not empty. 8. --!>
+
+#### 4.6.4 Work flow
+* Receives request
+* Gets Account by Username. If no record found, throws an exception.
+* Compares Passwords. If false, throws an exception.
+* Create and attach a new login history
+* Create and attach a new Notification of enum:AccountCreated
+* Save changes
+* Gets response from repository
+* Returns response.
+
+### 4.7 LogoutAccount
+* Logs a user out of account
+* Resets refreshToken.
+  
+#### 4.7.1 Request
+* Id (Ulid)
+
+#### 4.7.2 Response
 * 
-* System returns Id
+  
+#### 4.7.3 Validation
+
+#### 4.7.4 Work flow
+* Receives request
+* Gets Account by RefreshToken. If no record found, returns response
+* Resets RefreshToken
+* Save changes
+* Returns response.
+
+### 4.8 UpdateProfile
+* Updates profile details such as title, bio, etc.
+* Resets refreshToken.
+
+#### 4.8.1 Request
+* Id (Ulid)
+* Title (string)
+* Bio (string) 
+* PhotoBase64String (string)
+* EmailAddress (string)
+* IsAnnonymous (bool)
+
+#### 4.8.2 Response
+* Photo (string) <!-- FileName --!>
+  
+#### 4.8.3 Validation
+* Id <!-- Not Null --!>
+* Title <!-- Max:128 --!>
+* Bio <!-- Max:512 --!>
+* EmailAddress (string) <!-- Max:255 --!>
+
+#### 4.8.4 Work flow
+* Receives request
+* Gets Account by Id. If no record found, returns response
+* If PhotoBase64 is not null, Generate a new Filename, Save file to DigitalOcean Space
+* Update Title, Bio, IsAnnonymous, EmailAddress where not null
+* Create and attach a new Notification of enum:ProfileUpdated
+* Save changes
+* Returns response.
+
+### 4.9 UpdateContact
+* Updates a contact detail
+* Only predefined contact type e.g. Facebook, etc. are allowed.
+* If a contact detail with a specific contact type is not already attached, a new one is created
+
+#### 4.9.1 Request
+* Id (Ulid)
+* ContactType (enum) <!-- e.g. Facebook, Twitter, etc. --!>
+* Text (string) 
+
+#### 4.9.2 Response
+* Ok
+
+#### 4.9.3 Validation
+* Id <!-- Not Null --!>
+* Contact Type <!-- Not Null. Must be in enum. --!>
+* Text <!-- Not Null. Not Empty. 64 --!>
+
+#### 4.9.4 Work flow
+* Receives request
+* Gets Account by Id. If no record found, returns response
+* Update contact if already exists else create and attach a new contact
+* Create and attach a new Notification of enum:ContactUpdated
+* Save Changes
+* Returns response.
+
+### 4.10 SendToken
+* Generates and returns a verification token
+* First step in password reset
+
+#### 4.10.1 Request
+* EmailAddress (string)
+
+#### 4.10.2 Response
+* Id (Ulid) <!-- Id of newly created TempUser --!>
+
+#### 4.10.3 Validation
+* EmailAddress <!-- Not null. Not empty. 255. --!>
+
+#### 4.10.4 Work flow
+* Receives request
+* Get account bt email address. If it does not exists, throw new exception.
+	* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
+	* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes and throw new exception.
+	* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw new exception.
+* Else generates a new verification token
+* Schedules an email with verification token
+* Save changes
+* Returns response
+
+### 4.11 ResendToken
+* Generates and returns a verification token
+
+#### 4.11.1 Request
+* Id (Ulid) 
+* IpAddress (string) <!-- From HttpRequest
+
+#### 4.11.2 Response
+* Ok
+
+#### 4.11.3 Validation
+* EmailAddress <!-- Not null. Not empty. 255.
+
+#### 4.11.4 Work flow
+* Receives request
+* Get Account by email address. If it does not exist, throw an exception.
+* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw an exception.
+* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes, and throw an exception.
+* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw an exception.
+* Else generates a new verification token
+* Schedules an email with verification token
+* Save changes
+* Returns response
