@@ -65,57 +65,71 @@ This section provides a high-level summary of the project goals, scope, and key 
 
 This section provides a summary of the project architecture
 
-### src
-### modules : (Folder) Write models for the modules
-- [ ] _Module Name_ : (Folder)
-- [ ] OutScribed.Modules._ModuleName_.Application
-	- [ ] Features : (Folder)
-	 ---- **Feature Name** : (Folder) e.g. AddComment
-	 ----- **Feature Name**Endpoint : (Class) Uses FastEndpoint
-	 ----- **Feature Name**Request : (Class) Incoming request
-	 ----- **Feature Name**Response : (Class) Outgoing response
-	 ----- **Feature Name**Validator : (Class) Uses FluentValidation 
-	 ----- **Feature Name**Service : (Class) Work flow/ Execution
-	 -- OutScribed.Modules.**ModuleName**.Domain
-	 --- Models : (folder) AggregateRoot, entities, value objects
-**   OutScribed.API : (Project) Starting point of the application
-	 - Extentions : (Folder) Service extensions
-**  OutScribed.Application.Queries : (Project) Read models
-	 - DTOs : (Folder) Service extensions
-	 -- **Module Name** : (Folder)
-	 --- **DTO Name**
-	 - Features : (Folder) Service extensions
-	 -- **Module Name** : (Folder)
-	 --- **Feature Name** : (Folder) e.g. GetComments
-	 --- **Feature Name**Endpoint : (Class) Uses FastEndpoint
-	 --- **Feature Name**Request : (Class) Incoming request
-	 --- **Feature Name**Response : (Class) Outgoing response
-	 --- **Feature Name**Validator : (Class) Uses FluentValidation 
-	 --- **Feature Name**Service : (Class) Execution
-**  OutScribed.Infrastructure : (Project) Database, Email services
-	 - Persistence : (Folder) 
-	 -- Reads : (Folder) 
-	 --- Configurations : (Folder)
-	 ---- ReadsDbContext : (Class)
-	 ---- **Module Name** : (Folder)
-	 ----- **DTO**Configuration : (Class)
-	 --- EventConsumers
-	 -- Writes : (Folder) 
-	 --- **Module Name** : (Folder)
-	 ---- **AggregateRoot**Configuration : (Class)
-	 ---- **Module Name**DbContext : (Class)
-**   OutScribed.SharedKernel : (Project) Abstract classes, Enums, General Exceptions, Utilities classes (e.g. slug generator)
-	 - Abstract : (Folder) 
-	 - Enums : (Folder) 
-	 - Exceptions : (Folder) 
-	 - Utilities : (Folder) 
-	 -- IdGenerator : (Class) Generates ID for entities
-	 -- HtmlContentProcessor : (Class) Cleans Html content before storage: Remove dangerous attributes, scripts styles, comments, empty tags
-	 -- TagsSlugHelper : (Class) Generates a slug from a tag name. Converts to lowercase, Remove diacritics, Remove all non-alphanumerics except dash
-	 -- UrlSlugHelper : (Class) Generates a custom URL slug by concatenating the blog's publication date (YYYY-MM-DD), the unique creator's username, and a 
-								slugified version of the title. Uses hyphens (-) as separators, avoiding forward slashes (/).
+- [x] src
+	- [x] modules (Folder) <!-- Write models for the modules --!>
+		- [x] _Module Name_ (Folder)
+			- [x] OutScribed.Modules._ModuleName_.Application <!-- e.g. OutScribed.Modules.Onboarding.Application --!>
+				- [x] Features : (Folder) <!-- Commands --!>
+	 				- [ ] _Feature Name_  (Folder) <!-- e.g. SendToken --!>
+		 			- [ ] _Feature Name_Endpoint (Class) <!-- Uses FastEndpoint e.g. SendTokenEndpoint --!>
+	 				- [ ] _Feature Name_Request (Class) <!-- Incoming request e.g. SendTokenRequest --!>
+	 				- [ ] _Feature Name_Response (Class) <!-- Outgoing response e.g. SendTokenResponse --!>
+	 				- [ ] _Feature Name_Validator (Class) <!-- Uses FluentValidation e.g. SendTokenValidator --!>
+	 				- [ ] _Feature Name_Service (Class) <!-- Work flow/ Execution e.g. SendTokenService --!>
+      				- [x] Repository
+          				- [ ] _Module Name_Repository <!-- e.g. DiscoveryRepository --!> 
+	 		- [x] OutScribed.Modules._ModuleName_.Domain  <!-- e.g. OutScribed.Modules.Onboarding.Domain --!>
+	 			- [ ] Models (folder) <!-- AggregateRoot, entities, value objects --!>
+     				- [ ] Enums (folder)
+         			- [ ] Exceptions
+            			- [ ] Specifications  
+	- [x] OutScribed.API (Project) <!-- Starting point of the application --!>
+	 	- [ ] Extentions (Folder) <!-- Service extensions --!>
+   		- [ ] Middlewares 
+	- [x] OutScribed.Application.Queries (Project) <!-- Read models --!>
+	 	- [x] DTOs (Folder) 
+	 		- [x] _Module Name_ (Folder) <!-- e.g. Publishing --!>
+				- [ ] _DTO Name_ (Class) <!-- LoadInsightDetail --!>
+	 	- [x] Features (Folder) <!-- Queries --!>
+	 		- [x] _Module Name_ (Folder) <!-- e.g. Tales --!>
+				- [x] _Feature Name_  (Folder) <!-- e.g. GetComments --!>
+					- [ ] _Feature Name_Endpoint (Class) <!-- Uses FastEndpoint --!>
+					- [ ] _Feature Name_Request (Class) <!-- Incoming request --!>
+					- [ ] _Feature Name_Response (Class) <!-- Outgoing response --!>
+					- [ ] _Feature Name_Validator (Class) <!-- Uses FluentValidation --!>
+					- [ ] _Feature Name_Service (Class) <!-- Execution --!>
+	- [x] OutScribed.Infrastructure (Project) <!-- Database, Email services  --!>
+ 		- [x] EmailServices (folder)
+   		- [x] EventPublishers (folder)
+	        - [x] EventConsumers (folder)
+         	- [x] BackgroundJobs (folder)
+          		- [x] ScheduledJobs (folder)
+            		- [x] EnqueuedJobs (folder) 
+            		- [ ] HangfireDbContext
+		- [x] Persistence (Folder) 
+		 	- [x] Reads (Folder) 
+				 - [x] Configurations (Folder)
+				 	- [ ] ReadsDbContext  (Class)
+				 	- [x] _Module Name_ (Folder) <!-- e.g. Identity --!>
+				 		- [ ] _DTO_Configuration (Class) <!-- e.g. AccountDetailConfiguration --!>
+		 	- [x] Writes (Folder) 
+		 		- [x] _Module Name_  (Folder) <!-- e.g. Analysis --!>
+		 			- [ ] _AggregateRoot Name_Configuration (Class) <!-- e.g. InsightConfiguration --!>
+		 			- [ ] _Module Name_DbContext (Class) <!-- AnalysisDbContext --!>
+      		- [x] Repositories
+	- [x] OutScribed.SharedKernel (Project) <!-- Common interfaces and classes --!>
+	 	- [x] Abstract (Folder) 
+	 	- [x] Enums (Folder) 
+	   	- [x] Exceptions (Folder) 
+	   	- [x] Utilities (Folder) 
+			 - [ ] IdGenerator (Class) <!-- Generates ID for entities --!>
+			 - [ ] HtmlContentProcessor (Class) <!-- Cleans Html content before storage --!>
+			 - [ ] TagsSlugHelper (Class) <!-- Generates a slug from a tag name --!>
+    	 		 - [ ] IpAddressHelper (class) <!-- Retrieves Ip Address from HttpContext --!>
+			 - [ ] UrlSlugHelper (Class) <!-- Generates a custom URL slug by concatenating title, Year, Month, Day, and a unique short token for uniqueness --!>
 
-*tests
+- [x] tests
+
 ---
 
 ## 3. Write Model: Onboarding
