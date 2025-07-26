@@ -1,0 +1,212 @@
+﻿@page "/watchlist/{Id}"
+
+@inject NavigationManager navigator
+@inject IApiGetServices<WatchListResponse> getWatchlist
+@inject IJSRuntime JsRuntime
+@inject IAuthenticationServices authenticate
+@inject IApiPatchServices<CountsResponse,FollowWatchListRequest> followWatchList
+
+<PageTitle>Watchlists - OutScribed</PageTitle>
+
+@if (Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.None" />
+
+<main>
+
+    @if (InputError == null)
+    {
+
+        if (HasInput)
+        {
+
+            <div class="content-container">
+
+                <article class="content alt">
+
+                    <div class="content-text alt">
+
+                        <p class="content-subheading">
+                            @Input.CategoryToString<span class="divider">|</span>
+                            @if (Input.CountryToString != null)
+                            {
+                                @Input.CountryToString
+                                <span class="divider">|</span>
+                            }
+                            @Input.DateToString
+                        </p>
+
+                        <h1 class="content-heading">
+                            @Input.Title
+
+                        </h1>
+                        <p class="content-summary">
+                            @Input.Summary <br />
+                            <a class="source" href="@Input.SourceUrl">@Input.SourceText</a>
+                        </p>
+                        <div class="content-stats">
+                            <p> <span>@Input.FollowersToString</span> Watchers</p>
+                            <p>
+                                <span>@Input.TalesToString</span>
+
+                                @if (Input.Tales > 0)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tales?watchlistId={Input.Id}")'>
+                                        Linked Tales
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" class="disabled">
+                                        Linked Tales
+                                    </a>
+                                }
+                            </p>
+                        </div>
+                        <p class="content-save">
+                            @if (Input.IsFollowingWatchlist)
+                            {
+                                <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => FollowWatchlist(false)'>
+                                    Stop Watching
+                                </a>
+                            }
+                            else
+                            {
+                                <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => FollowWatchlist(true)'>
+                                    Watch
+                                </a>
+                            }
+                        </p>
+                    </div>
+
+                </article>
+
+
+
+            </div>
+
+        }
+        else
+        {
+              <LoadingComponent Type="--- loading watchlist ---" />
+
+        }
+    }
+    else
+    {
+        <ErrorComponent Message=@InputError Type="watchlist" />
+    }
+
+
+</main>
+
+<FooterComponent />
+
+@code{
+
+    [Parameter]
+    public string Id { get; set; } = default!;
+
+    bool HasInput { get; set; } = false;
+
+    public WatchListResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+        }
+
+        var result = await getWatchlist.GetAsync($"watchlists/{Id}", CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+    public string? Info { get; set; }
+
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+    private async Task FollowWatchlist(bool option)
+    {
+
+          if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/watchlist/{Id}", false);
+        }
+
+        FollowWatchListRequest formData = new()
+            {
+                WatchListId = Input.Id,
+                Option = option
+            };
+
+        var result = await followWatchList.PatchAsync("watchlists/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.IsFollowingWatchlist = option;
+
+            Input.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Watchlist Followed");
+
+            }
+            else
+            {
+                await SetInfo("Watchlist Unfollowed");
+
+            }
+
+        }
+    }
+
+}

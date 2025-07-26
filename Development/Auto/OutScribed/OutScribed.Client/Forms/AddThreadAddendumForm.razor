@@ -1,0 +1,319 @@
+﻿@inject IApiPatchServices<AddAddendumResponse,AddThreadAddendumRequest> updateThread
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IJSRuntime JSRuntime
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="AddThreadAddendumForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Add Addendum
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved thread. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Adding Addendums To Threads
+                    </li>
+                    <li>
+                        Addendums allows you to extend threads which are automatically unedited
+                        after publication.
+                    </li>
+                    <li>
+                        They could be used to reflect an evolved opinion, additional facts that 
+                        has arisen, or retractions.
+                    </li>
+                    <li>
+                        Each addendum is limited to 4096 characters but there are no limits to the
+                        number of addendums that could be added however it should be noted that 
+                        overly long articles may cause readers to lose interest.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <div class="form-editor">
+
+                    @if (EditorEnabled)
+                    {
+                        <div @ref="@ToolBar">
+
+                            <span class="ql-formats">
+                                <button class="ql-header" value="1"></button>                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                                <select class="ql-color"></select>
+                            </span>
+
+                            <span class="ql-formats">
+                                <button class="ql-list" value="ordered"></button>
+                                <button class="ql-list" value="bullet"></button>
+                            </span>
+
+                            <span class="ql-formats">
+                                <button class="ql-link"></button>
+                            </span>
+
+                        </div>
+                    }
+
+                    <div @ref="@QuillElement" />
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+  
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public AddThreadAddendumRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    private ElementReference QuillElement;
+
+    private ElementReference ToolBar;
+
+
+    private bool EditorEnabled = true;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+        {
+                Id = Component.ThreadDraft.Id
+        };
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await QuillInterop.CreateQuill(
+                JSRuntime,
+                QuillElement,
+                ToolBar,
+                false,
+                "Type in details...",
+                "bubble",
+                "info");
+
+
+        }
+    }
+
+    public async Task<string> GetHTML()
+    {
+        return await QuillInterop.GetHTML(
+            JSRuntime, QuillElement);
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        Progress = FormProgress.Loading;
+
+        FormError = string.Empty;
+
+        var details = await GetHTML();
+
+        if (details == null)
+        {
+            FormError = "Details cannot be null";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+
+        if (details.Length > 4096)
+        {
+            FormError = "Details cannot be greater than 4096 characters";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+
+        FormData.Details = details;
+
+        var result = await updateThread.PatchAsync("threads/add/addendum", FormData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            FormError = result.Error ?? "Unknown server error";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+        else
+        {
+
+            if (result.Value.Addendum == null)
+            {
+                Progress = FormProgress.Close;
+            }
+            else
+            {
+                if (Component.ThreadDraft.Addendums == null)
+                    Component.ThreadDraft.Addendums = new();
+
+                Component.ThreadDraft.Addendums.Add(result.Value.Addendum);
+
+                Component.Info = "Addendum Added";
+
+                await OnRemoveComponent.InvokeAsync();
+
+            }
+
+
+        }
+    }
+
+}

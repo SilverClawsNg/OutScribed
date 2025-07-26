@@ -1,0 +1,237 @@
+﻿@inject IApiPatchServices<bool,UpdateTaleSummaryRequest> updateTale
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateTaleSummaryForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Update Tale
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved tale. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Adding Summary To Tales
+                    </li>
+                    <li>
+                        A summary is a short text that recaps the main points of a tale
+                        enough to entice curiosity without giving away spoilers.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <fieldset class="alt">
+                    <InputTextArea @bind-Value=FormData.Summary id="Summary" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.Summary) ? null : "stay")">Summary</label>
+                    <ValidationMessage For="() => FormData.Summary" />
+                </fieldset>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public UpdateTaleSummaryRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+        {
+                Id = Component.TaleDraft.Id,
+                Summary = Component.TaleDraft.Summary!
+        };
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await updateTale.PatchAsync("tales/update/summary", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                if (FormData.Summary != null)
+                    Component.TaleDraft.Summary = FormData.Summary;
+
+                Component.Info = "Summary Updated";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}

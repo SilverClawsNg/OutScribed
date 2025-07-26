@@ -1,0 +1,243 @@
+﻿@inject IApiPatchServices<bool,PublishThreadRequest> updateThread
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateThreadForm">
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Publish Thread
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved thread. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Publishing Thread
+                    </li>
+                    <li>
+                        By publishing this thread, you expose it to other users.
+                    </li>
+                    <li>
+                        After publication, a thread would no longer be open to updates so ensure
+                        that all details are exactly as you want them visible to the general
+                        public.
+                    </li>
+                    <li>
+                        After publication, you may be able to add addendum to the thread.
+                    </li>
+                    <li>
+                        To publish a thread, simply confirm the process. Note that imcomplete
+                        threads i.e. without title, summary, category, photo, and details would
+                        fail to publish.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <fieldset class="alt">
+
+                    <div class="tick-option vertical">
+
+                        <InputCheckbox @bind-Value="FormData.Confirm" Id="Confirm" />
+
+                        <label for="Confirm"> Tick to publish thread</label>
+
+                    </div>
+
+                    <label class="stay">Confirm</label>
+
+                </fieldset>
+
+                <ValidationMessage For="() => FormData.Confirm" />
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public PublishThreadRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+            {
+                Id = Component.ThreadDraft.Id
+            };
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        Progress = FormProgress.Loading;
+
+        FormError = string.Empty;
+
+        var result = await updateThread.PatchAsync("threads/update/status", FormData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            FormError = result.Error ?? "Unknown server error";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+        else
+        {
+
+            Component.ThreadDraft.IsOnline = FormData.Confirm;
+
+            Component.Info = "Thread Published";
+
+            await OnRemoveComponent.InvokeAsync(Component);
+
+        }
+
+    }
+
+}

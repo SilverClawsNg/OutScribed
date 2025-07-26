@@ -1,0 +1,125 @@
+﻿using AutoMapper;
+using Backend.Application.Features.TalesManagement.Commands.CreateTale;
+using Backend.Application.Features.TempUserManagement.Commands.ResendRegistrationOTPEmail;
+using Backend.Application.Features.TempUserManagement.Commands.SendRegistrationOTPEmail;
+using Backend.Application.Features.TempUserManagement.Commands.SetDoNotResendOTPEmail;
+using Backend.Application.Features.TempUserManagement.Commands.VerifyOTPPhone;
+using Backend.Application.Features.UserManagement.Commands.CreateAccountEmail;
+using Backend.Application.Features.UserManagement.Commands.CreateAccountPhone;
+using Backend.Application.Features.UserManagement.Commands.LoginUser;
+using Backend.Application.Features.UserManagement.Commands.RefreshToken;
+using Backend.Application.Features.UserManagement.Commands.UpdateContacts;
+using Backend.Application.Features.UserManagement.Commands.UpdateProfile;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTaleBasic;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTaleDetails;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTaleSummary;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTalePhoto;
+using Backend.Application.Features.UserManagement.Commands.SubmitWriterApplication;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTaleStatus;
+using Backend.Application.Features.UserManagement.Commands.AssignRole;
+using Backend.Application.Features.UserManagement.Commands.LogoutUser;
+using Backend.Application.Features.TalesManagement.Commands.RateTale;
+using Backend.Application.Features.TalesManagement.Commands.CreateTaleComment;
+using Backend.Application.Features.TalesManagement.Commands.FollowTale;
+using Backend.Application.Features.TalesManagement.Commands.RateTaleComment;
+using Backend.Application.Features.WatchListManagement.Commands.CreateWatchList;
+using Backend.Application.Features.WatchListManagement.Commands.FollowWatchList;
+using Backend.Application.Features.ThreadsManagement.Commands.CreateThread;
+using Backend.Application.Features.UserManagement.Commands.FollowUser;
+using Backend.Application.Features.TempUserManagement.Commands.ResendRegistrationOTPPhone;
+using Backend.Application.Features.TempUserManagement.Commands.SendRegistrationOTPPhone;
+using Backend.Application.Features.TempUserManagement.Commands.SetDoNotResendOTPPhone;
+using Backend.Application.Features.TempUserManagement.Commands.VerifyOTPEmail;
+using Backend.Application.Features.UserManagement.Commands.ResendRecoveryOTP;
+using Backend.Application.Features.UserManagement.Commands.ResetPassword;
+using Backend.Application.Features.UserManagement.Commands.SendRecoveryOTP;
+using Backend.Application.Features.UserManagement.Commands.UpdatePassword;
+using Backend.Application.Features.TalesManagement.Commands.CreateTaleResponse;
+using Backend.Application.Features.TalesManagement.Commands.FlagTale;
+using Backend.Application.Features.TalesManagement.Commands.FlagTaleComment;
+using Backend.Application.Features.ThreadsManagement.Commands.CreateThreadResponse;
+using Backend.Application.Features.ThreadsManagement.Commands.CreateThreadComment;
+using Backend.Application.Features.ThreadsManagement.Commands.RateThread;
+using Backend.Application.Features.ThreadsManagement.Commands.FlagThreadComment;
+using Backend.Application.Features.ThreadsManagement.Commands.RateThreadComment;
+using Backend.Application.Features.ThreadsManagement.Commands.FollowThread;
+using Backend.Application.Features.ThreadsManagement.Commands.UpdateThreadBasic;
+using Backend.Application.Features.ThreadsManagement.Commands.UpdateThreadDetails;
+using Backend.Application.Features.ThreadsManagement.Commands.UpdateThreadPhoto;
+using Backend.Application.Features.ThreadsManagement.Commands.UpdateThreadSummary;
+using Backend.Application.Features.ThreadsManagement.Commands.PublishThread;
+using Backend.Application.Features.ThreadsManagement.Commands.AddThreadAddendum;
+using Backend.Application.Features.WatchListManagement.Commands.UpdateWatchList;
+using Backend.Application.Features.ThreadsManagement.Commands.UpdateThreadCountry;
+using Backend.Application.Features.ThreadsManagement.Commands.UpdateThreadTags;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTaleCountry;
+using Backend.Application.Features.TalesManagement.Commands.UpdateTaleTags;
+using Backend.Application.Features.WatchListManagement.Commands.LinkWatchList;
+
+namespace Backend.Api
+{
+    public class MapperProfiles : Profile
+    {
+        public MapperProfiles()
+        {
+            CreateMap<ResendRegistrationOTPEmailRequest, ResendRegistrationOTPEmailCommand>();
+            CreateMap<SendRegistrationOTPEmailRequest, SendRegistrationOTPEmailCommand>();
+            CreateMap<SetDoNotResendOTPEmailRequest, SetDoNotResendOTPEmailCommand>();
+            CreateMap<ResendRegistrationOTPPhoneRequest, ResendRegistrationOTPPhoneCommand>();
+            CreateMap<SendRegistrationOTPPhoneRequest, SendRegistrationOTPPhoneCommand>();
+            CreateMap<SetDoNotResendOTPPhoneRequest, SetDoNotResendOTPPhoneCommand>();
+            CreateMap<VerifyOTPEmailRequest, VerifyOTPEmailCommand>();
+            CreateMap<VerifyOTPPhoneRequest, VerifyOTPPhoneCommand>();
+            CreateMap<CreateAccountEmailRequest, CreateAccountEmailCommand>();
+            CreateMap<CreateAccountPhoneRequest, CreateAccountPhoneCommand>();
+            CreateMap<LoginUserRequest, LoginUserCommand>();
+            CreateMap<LogoutUserRequest, LogoutUserCommand>();
+            CreateMap<SubmitWriterApplicationRequest, SubmitWriterApplicationCommand>();
+            CreateMap<UpdateContactsRequest, UpdateContactsCommand>();
+            CreateMap<RefreshTokenRequest, RefreshTokenCommand>();
+            CreateMap<UpdateProfileRequest, UpdateProfileCommand>();
+            CreateMap<CreateTaleRequest, CreateTaleCommand>();
+            CreateMap<UpdateTaleBasicRequest, UpdateTaleBasicCommand>();
+            CreateMap<UpdateTaleSummaryRequest, UpdateTaleSummaryCommand>();
+            CreateMap<UpdateTaleDetailsRequest, UpdateTaleDetailsCommand>();
+            CreateMap<UpdateTaleStatusRequest, UpdateTaleStatusCommand>();
+            CreateMap<UpdateTalePhotoRequest, UpdateTalePhotoCommand>();
+            CreateMap<UpdateTaleTagsRequest, UpdateTaleTagsCommand>();
+            CreateMap<UpdateTaleCountryRequest, UpdateTaleCountryCommand>();
+
+            CreateMap<AssignRoleRequest, AssignRoleCommand>();
+            CreateMap<RateTaleRequest, RateTaleCommand>();
+            CreateMap<CreateTaleCommentRequest, CreateTaleCommentCommand>();
+            CreateMap<CreateTaleResponseRequest, CreateTaleResponseCommand>();
+            CreateMap<FlagTaleRequest, FlagTaleCommand>();
+            CreateMap<FlagTaleCommentRequest, FlagTaleCommentCommand>();
+            CreateMap<FollowTaleRequest, FollowTaleCommand>();
+            CreateMap<RateTaleCommentRequest, RateTaleCommentCommand>();
+            CreateMap<CreateWatchListRequest, CreateWatchListCommand>();
+            CreateMap<UpdateWatchListRequest, UpdateWatchListCommand>();
+
+            CreateMap<FollowWatchListRequest, FollowWatchListCommand>();
+            CreateMap<CreateThreadRequest, CreateThreadCommand>();
+            CreateMap<RateThreadRequest, RateThreadCommand>();
+            CreateMap<FollowThreadRequest, FollowThreadCommand>();
+            CreateMap<FlagThreadCommentRequest, FlagThreadCommentCommand>();
+            CreateMap<RateThreadCommentRequest, RateThreadCommentCommand>();
+            CreateMap<CreateThreadCommentRequest, CreateThreadCommentCommand>();
+            CreateMap<CreateThreadResponseRequest, CreateThreadResponseCommand>();
+            CreateMap<FollowUserRequest, FollowUserCommand>();
+            CreateMap<ResendRecoveryOTPRequest, ResendRecoveryOTPCommand>();
+            CreateMap<ResetPasswordRequest, ResetPasswordCommand>();
+            CreateMap<SendRecoveryOTPRequest, SendRecoveryOTPCommand>();
+            CreateMap<UpdatePasswordRequest, UpdatePasswordCommand>();
+            CreateMap<UpdateThreadBasicRequest, UpdateThreadBasicCommand>();
+            CreateMap<UpdateThreadSummaryRequest, UpdateThreadSummaryCommand>();
+            CreateMap<UpdateThreadDetailsRequest, UpdateThreadDetailsCommand>();
+            CreateMap<PublishThreadRequest, PublishThreadCommand>();
+            CreateMap<UpdateThreadPhotoRequest, UpdateThreadPhotoCommand>();
+            CreateMap<AddThreadAddendumRequest, AddThreadAddendumCommand>();
+            CreateMap<UpdateThreadTagsRequest, UpdateThreadTagsCommand>();
+            CreateMap<UpdateThreadCountryRequest, UpdateThreadCountryCommand>();
+            CreateMap<LinkWatchListRequest, LinkWatchListCommand>();
+        }
+    }
+}

@@ -1,0 +1,188 @@
+﻿@page "/send/registration/otp/phone"
+
+@inject IApiPostServices<bool,SendOTPPhoneRequest> sendOtp
+@inject NavigationManager navigator
+
+<PageTitle>Register - OutScribed</PageTitle>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Register" />
+
+<main>
+
+    <EditForm Model=@FormData OnValidSubmit=@FormAction FormName="RegisterForm">
+
+        <div class="form-contents">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="form-header">
+                <h1 class="content-heading">
+                    Registration /1
+                </h1>
+                <h2 class="content-summary">
+                    Request One-Time Password
+                    <a class="show-help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'></a>
+                </h2>
+            </div>
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Getting OTP
+                    </li>
+                    <li>
+                        Thanks for choosing to join <span class="logo-text">OutScribed</span>.
+                    </li>
+                    <li>
+                        As the first of three (3) quick steps, we want to confirm that you
+                        are not a bot so we would like to send you a short token which
+                        you would be required to provide in the second step.
+                    </li>
+                    <li>
+                        If you do not have a functional e-mail address, you can easily create
+                        a new one or you can opt to use a phone number instead and receive
+                        the token via WhatsApp
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container alt">
+
+                <fieldset>
+
+                    <InputText @bind-Value=@FormData.PhoneNumber id="PhoneNumber" class="form-field" />
+
+                    <label class="@(FormData.PhoneNumber == null || string.IsNullOrEmpty(FormData.PhoneNumber) ?  null : "stay")">Phone Number</label>
+
+                </fieldset>
+
+            </div>
+
+            <div class="form-footer">
+
+                <div class="form-footer-links">
+
+                    <button type="submit">
+                        Submit
+                    </button>
+
+                </div>
+
+                <div class="form-footer-options">
+                    <a class="password" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/registration/otp/email")'>
+                        Use Email Address Instead
+                    </a>
+                   
+                </div>
+
+            </div>
+
+        </div>
+
+    </EditForm>
+
+</main>
+
+<FooterComponent />
+
+@code {
+   
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    [SupplyParameterFromForm]
+    public SendOTPPhoneRequest FormData { get; set; } = default!;
+
+    bool PasswordVisible { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new();
+
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (editContext.Validate())
+        {
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await sendOtp.PostAsync("accounts/send/registration/otp/phone", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+            }
+            else
+            {
+                navigator.NavigateTo($"/verify/registration/otp/phone/{FormData.PhoneNumber}", false);
+            }
+
+        }
+        else
+        {
+
+            Progress = FormProgress.Error;
+
+            FormError = "Form failed validation";
+
+            return;
+        }
+    }
+}

@@ -1,0 +1,1407 @@
+﻿@page "/test"
+@inject IAuthenticationServices authenticate
+@inject NavigationManager navigator
+@inject ILocalStorageService localStorage
+@inject IApiGetServices<HomepageContentsResponse> getHome
+@inject IApiGetServices<UserProfileResponse> getProfile
+@inject IApiPatchServices<CountsResponse,FollowTaleRequest> followTale
+@inject IApiPatchServices<CountsResponse,FollowWatchListRequest> followWatchList
+@inject IApiPatchServices<CountsResponse,FollowThreadRequest> followThread
+@inject IJSRuntime JsRuntime
+
+
+@if (Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<PageTitle>OutScribed - The Truth, The Fiction, & Everything In-Between</PageTitle>
+
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+
+            @foreach (var component in Components.OrderBy(c => c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.UserProfile)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UserProfileComponent Component="component"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal"
+                            OnSetInfo="SetInfo"
+                            OnRemoveComponent="RemoveComponent" />
+
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+
+                </div>
+
+            }
+
+        }
+
+
+    </div>
+
+</div>
+
+<div class="test-page">
+
+    <div class="test-page-top">
+
+        <div class="test-page-header">
+
+            <div class="inner-test-page-header">
+
+                <h1 class="logo-text">
+                    OutScribed
+                </h1>
+
+                <h2>
+                    The Truth, The Fiction, & Everything In-between
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="@(ShowMenu ? "test-page-nav active" : "test-page-nav")">
+
+            <a class="@(Tab == NavTabs.Home ? "logo-icon active" : "logo-icon")" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/tales")'>
+                <img src="/images/logos/logo.png" />
+            </a>
+
+            <a class="@(ShowMenu ? "show-menu active" : "show-menu")" href="#" @onclick:preventDefault="true" @onclick='() => ShowMenu = !ShowMenu'></a>
+
+            <div class="@(ShowMenu ? "nav-divider active" : "nav-divider")">
+
+                <div class="left-nav">
+
+               
+                    @* <span class="divider">|</span> *@
+                    <a class="@(Tab == NavTabs.Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/tales")'>About </a>
+
+                </div>
+
+                <div class="center-nav">
+
+                    <a class="@(Tab == NavTabs.Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/tales")'>Tales </a>
+
+                    <a class="@(Tab == NavTabs.Threads ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/threads")'>Threads</a>
+
+                    <a class="@(Tab == NavTabs.WatchList ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/watchlists")'>Watchlists</a>
+
+                    @if (!IsLoggedIn)
+                    {
+
+                        <a class="@(ShowAccount ? "focus show-dropdown" : "show-dropdown")" href="#" @onclick:preventDefault="true" @onclick='() => ShowAccountAction()'>Account</a>
+
+                        <div class="@(ShowAccount ? "focus dropdown" : "dropdown")">
+
+                            <a class="@(Tab == NavTabs.My_Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/tales")'>My Tales</a>
+
+                            <a class="@(Tab == NavTabs.My_Threads ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/threads")'>My Threads</a>
+
+                            <a class="@(Tab == NavTabs.Activities ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/activities")'>Activities</a>
+
+                        </div>
+
+                    }
+
+                    @if (!IsAdmin || !IsWriter)
+                    {
+
+                        <a class="@(ShowAdmin ? "focus show-dropdown" : "show-dropdown")" href="#" @onclick:preventDefault="true" @onclick='() => ShowAdminAction()'>Admin</a>
+
+                        <div class="@(ShowAdmin ? "focus dropdown" : "dropdown")">
+
+
+                            @if (!IsAdmin)
+                            {
+
+                                <a class="@(Tab == NavTabs.Pool_Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/pool/tales", false)'>Pool Tales </a>
+
+                                <a class="@(Tab == NavTabs.Team ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/pool/teams")'>Teams</a>
+
+                            }
+
+                            @if (!IsWriter)
+                            {
+
+                                <a class="@(Tab == NavTabs.Pool_Watchlists ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/pool/watchlists")'>Pool Watchlists</a>
+                            }
+
+                        </div>
+
+                    }
+
+                </div>
+
+                <div class="right-nav">
+
+                    @if (!IsLoggedIn)
+                    {
+
+
+                        <a class="@(Tab == NavTabs.Logout ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/logout", true)'>Log Out</a>
+
+                        <a class="@(Tab == NavTabs.Profile ? "bolded active" : "bolded")" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/profile", false)'>Profile</a>
+
+                    }
+                    else
+                    {
+                        <a class="@(Tab == NavTabs.Login ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/login", true)'>Log In</a>
+
+                        <a class="@(Tab == NavTabs.Register ? "bolded active" : "bolded")" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/registration/otp/email", false)'>Join Us</a>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="text-page-flyer">
+            <div class="text-page-flyer-image">
+                <img src="/images/backgrounds/truth-seeker3.png" />
+            </div>
+            <div class="text-page-flyer-text">
+                <h1>
+                    A seeker of truths walketh long and lonely roads. 
+                </h1>
+                <h2>
+                    Let us be your guide.
+                </h2>
+                <h3>
+                    OutScribed is an interpretative & predictive platform which
+                    uses allegories, satire, parodies, analogies, etc. to help
+                    unravel the complexities of events unfolding around us.
+                </h3>
+                <div class="text-page-flyer-links">
+                    <a href="#">Learn More</a>
+                    <a href="#">Join Us</a>
+
+                </div>
+            </div>
+           
+        </div>
+
+
+      @*   <div class="test-page-intro">
+            <div class="circle-gradient"></div>
+            <div class="circle-gradient second"></div>
+        </div> *@
+        @*     <div class="inner-container">
+
+
+        <div class="container-contents">
+            <div class="container-contents-header">
+
+
+            </div>
+
+            <div class="site-intro">
+
+                <div class="site-intro-text">
+
+                    <h1>
+                        Discover your <span>own <i>truths</i></span>
+                    </h1>
+                    <h2>
+                        Interpretative News & Events Analysis.
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/about-us", false)'>
+                            Learn More
+                        </a>
+                    </h2>
+                </div>
+
+                <div class="site-intro-image">
+                    <img src="/images/backgrounds/white-binoculars.png" />
+                </div>
+
+            </div>
+
+
+            @if (InputError == null)
+            {
+
+                if (HasInput)
+                {
+
+                    if (Input.RecentTales != null && Input.RecentTales.Count > 0)
+                    {
+
+                        <div class="line-header">
+
+                            <p class="line"></p>
+
+                            <h2>
+
+                                Recent Tales
+
+                            </h2>
+
+                            <p class="line"></p>
+
+                        </div>
+
+                        <div class="merged-contents-container">
+
+                            <div class="featured-content">
+
+                                <div class="featured-content-image">
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{Input.FeaturedTale!.TaleUrl}", false)'>
+                                        <img src="@Input.FeaturedTale!.PhotoUrlToString" />
+                                    </a>
+                                </div>
+
+                                <div class="featured-content-text">
+
+                                    <p class="content-subheading">
+                                        @Input.FeaturedTale.CategoryToString <span class="divider">|</span>
+                                        @if (Input.FeaturedTale.CountryToString != null)
+                                        {
+                                            @Input.FeaturedTale.CountryToString
+                                            <span class="divider">|</span>
+                                        }
+                                        @Input.FeaturedTale.DateToString
+                                    </p>
+
+                                    <h1 class="content-heading">
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{Input.FeaturedTale.TaleUrl}", false)'>
+                                            @Input.FeaturedTale.Title
+                                        </a>
+                                        <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.FeaturedTale.WriterId})'>
+                                            @Input.FeaturedTale.WriterUsername
+                                        </a>
+                                    </h1>
+
+                                    <p class="content-summary">
+                                        @Input.FeaturedTale.Summary.Truncate(256)
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{Input.FeaturedTale.TaleUrl}", false)'>
+                                            continue
+                                        </a>
+                                    </p>
+
+                                    <div class="content-stats">
+                                        <p> <span>@Input.FeaturedTale.ViewsToString</span> Views</p>
+                                        <p> <span>@Input.FeaturedTale.LikesToString</span> Likes</p>
+                                        <p> <span>@Input.FeaturedTale.HatesToString</span> Hates</p>
+                                        <p><span>@Input.FeaturedTale.CommentsToString </span> Comments</p>
+                                        <p><span>@Input.FeaturedTale.ThreadsToString </span> Threads</p>
+                                    </div>
+
+                                    <p class="content-save">
+                                        @if (Input.FeaturedTale.IsFollowingTale)
+                                        {
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(Input.FeaturedTale, false)'>
+                                                Unsave
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(Input.FeaturedTale, true)'>
+                                                Save For Later
+                                            </a>
+                                        }
+
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                            <div class="attached-contents-container">
+
+                                @foreach (var tale in Input.OtherTales!)
+                                {
+                                    <div class="attached-contents">
+
+                                        <div class="attached-contents-image">
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                                <img src="@tale.PhotoUrlToString" />
+                                            </a>
+                                        </div>
+
+                                        <div class="attached-contents-text">
+
+                                            <p class="content-subheading">
+                                                @tale.CategoryToString <span class="divider">|</span>
+                                                @if (tale.CountryToString != null)
+                                                {
+                                                    @tale.CountryToString
+                                                    <span class="divider">|</span>
+                                                }
+                                                @tale.DateToString
+                                            </p>
+
+                                            <h1 class="content-heading">
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                                    @tale.Title
+                                                </a>
+                                                <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = tale.WriterId})'>
+                                                    @tale.WriterUsername
+                                                </a>
+                                            </h1>
+
+                                            <p class="content-summary">
+                                                @tale.Summary.Truncate(256)
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                                    continue
+                                                </a>
+                                            </p>
+
+                                            <div class="content-stats">
+                                                <p> <span>@tale.ViewsToString</span> Views</p>
+                                                <p> <span>@tale.LikesToString</span> Likes</p>
+                                                <p> <span>@tale.HatesToString</span> Hates</p>
+                                                <p><span>@tale.CommentsToString </span> Comments</p>
+                                                <p><span>@tale.ThreadsToString </span> Threads</p>
+                                            </div>
+
+                                            <p class="content-save">
+                                                @if (tale.IsFollowingTale)
+                                                {
+                                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(tale, false)'>
+                                                        Unsave
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(tale, true)'>
+                                                        Save For Later
+                                                    </a>
+                                                }
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                }
+
+                            </div>
+
+                        </div>
+
+                    }
+                    else
+                    {
+                        <div class="no-content">
+
+                            <ErrorGif />
+
+                            <div class="no-contents-box">
+
+                                <h3>
+                                    No Result!
+                                </h3>
+
+                                <p>
+                                    No recent tales could be loaded
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    }
+
+                    if (Input.PopularTales != null && Input.PopularTales.Count > 0)
+                    {
+
+                        <div class="line-header">
+
+                            <p class="line"></p>
+
+                            <h2>
+
+                                Trending Tales
+
+                            </h2>
+
+                            <p class="line"></p>
+
+                        </div>
+
+                        <div class="detached-contents-container">
+
+                            @foreach (var tale in Input.PopularTales)
+                            {
+                                <div class="detached-contents">
+
+                                    <div class="detached-contents-image">
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                            <img src="@tale.PhotoUrlToString" />
+                                        </a>
+                                    </div>
+
+                                    <div class="detached-contents-text">
+
+                                        <p class="content-subheading">
+                                            @tale.CategoryToString <span class="divider">|</span>
+                                            @if (tale.CountryToString != null)
+                                            {
+                                                @tale.CountryToString
+                                                <span class="divider">|</span>
+                                            }
+                                            @tale.DateToString
+                                        </p>
+
+                                        <h1 class="content-heading">
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                                @tale.Title
+                                            </a>
+                                            <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = tale.WriterId})'>
+                                                @tale.WriterUsername
+                                            </a>
+                                        </h1>
+
+                                        <p class="content-summary">
+                                            @tale.Summary.Truncate(256)
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                                continue
+                                            </a>
+                                        </p>
+
+                                        <div class="content-stats">
+                                            <p> <span>@tale.ViewsToString</span> Views</p>
+                                            <p> <span>@tale.LikesToString</span> Likes</p>
+                                            <p> <span>@tale.HatesToString</span> Hates</p>
+                                            <p><span>@tale.CommentsToString </span> Comments</p>
+                                            <p><span>@tale.ThreadsToString </span> Threads</p>
+                                        </div>
+
+                                        <p class="content-save">
+                                            @if (tale.IsFollowingTale)
+                                            {
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(tale, false)'>
+                                                    Unsave
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(tale, true)'>
+                                                    Save For Later
+                                                </a>
+                                            }
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            }
+
+                        </div>
+
+                    }
+                    else
+                    {
+                        <div class="no-content">
+
+                            <ErrorGif />
+
+                            <div class="no-contents-box">
+
+                                <h3>
+                                    No Result!
+                                </h3>
+
+                                <p>
+                                    No trending tales could be loaded
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    }
+
+                    if (Input.RecentThreads != null && Input.RecentThreads.Count > 0)
+                    {
+
+                        <div class="line-header">
+
+                            <p class="line"></p>
+
+                            <h2>
+
+                                Recent Threads
+
+                            </h2>
+
+                            <p class="line"></p>
+
+                        </div>
+
+                        <div class="merged-contents-container">
+
+                            <div class="featured-content">
+
+                                <div class="featured-content-image">
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{Input.FeaturedThread!.ThreadUrl}", false)'>
+                                        <img src="@Input.FeaturedThread!.PhotoUrlToString" />
+                                    </a>
+                                </div>
+
+                                <div class="featured-content-text">
+
+                                    <p class="content-subheading">
+                                        @Input.FeaturedThread.CategoryToString <span class="divider">|</span>
+                                        @if (Input.FeaturedThread.CountryToString != null)
+                                        {
+                                            @Input.FeaturedThread.CountryToString
+                                            <span class="divider">|</span>
+                                        }
+                                        @Input.FeaturedThread.DateToString
+                                    </p>
+
+                                    <h1 class="content-heading">
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{Input.FeaturedThread.ThreadUrl}", false)'>
+                                            @Input.FeaturedThread.Title
+                                        </a>
+                                        <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.FeaturedThread.ThreaderId})'>
+                                            @Input.FeaturedThread.ThreaderUsername
+                                        </a>
+                                    </h1>
+
+                                    <p class="content-summary">
+                                        @Input.FeaturedThread.Summary.Truncate(256)
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{Input.FeaturedThread.ThreadUrl}", false)'>
+                                            continue
+                                        </a>
+                                    </p>
+
+                                    <div class="content-stats">
+                                        <p> <span>@Input.FeaturedThread.ViewsToString</span> Views</p>
+                                        <p> <span>@Input.FeaturedThread.LikesToString</span> Likes</p>
+                                        <p> <span>@Input.FeaturedThread.HatesToString</span> Hates</p>
+                                        <p><span>@Input.FeaturedThread.CommentsToString </span> Comments</p>
+                                    </div>
+
+                                    <p class="content-save">
+                                        @if (Input.FeaturedThread.IsFollowingThread)
+                                        {
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(Input.FeaturedThread, false)'>
+                                                Unsave
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(Input.FeaturedThread, true)'>
+                                                Save For Later
+                                            </a>
+                                        }
+
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                            <div class="attached-contents-container">
+
+                                @foreach (var thread in Input.OtherThreads!)
+                                {
+                                    <div class="attached-contents">
+
+                                        <div class="attached-contents-image">
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                                <img src="@thread.PhotoUrlToString" />
+                                            </a>
+                                        </div>
+
+                                        <div class="attached-contents-text">
+
+                                            <p class="content-subheading">
+                                                @thread.CategoryToString <span class="divider">|</span>
+                                                @if (thread.CountryToString != null)
+                                                {
+                                                    @thread.CountryToString
+                                                    <span class="divider">|</span>
+                                                }
+                                                @thread.DateToString
+                                            </p>
+
+                                            <h1 class="content-heading">
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                                    @thread.Title
+                                                </a>
+                                                <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = thread.ThreaderId})'>
+                                                    @thread.ThreaderUsername
+                                                </a>
+                                            </h1>
+
+                                            <p class="content-summary">
+                                                @thread.Summary.Truncate(256)
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                                    continue
+                                                </a>
+                                            </p>
+
+                                            <div class="content-stats">
+                                                <p> <span>@thread.ViewsToString</span> Views</p>
+                                                <p> <span>@thread.LikesToString</span> Likes</p>
+                                                <p> <span>@thread.HatesToString</span> Hates</p>
+                                                <p><span>@thread.CommentsToString </span> Comments</p>
+                                            </div>
+
+                                            <p class="content-save">
+                                                @if (thread.IsFollowingThread)
+                                                {
+                                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(thread, false)'>
+                                                        Unsave
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(thread, true)'>
+                                                        Save For Later
+                                                    </a>
+                                                }
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                }
+
+                            </div>
+
+                        </div>
+
+                    }
+                    else
+                    {
+                        <div class="no-content">
+
+                            <ErrorGif />
+
+                            <div class="no-contents-box">
+
+                                <h3>
+                                    No Result!
+                                </h3>
+
+                                <p>
+                                    No recent threads could be loaded
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    }
+
+                    if (Input.PopularThreads != null && Input.PopularThreads.Count > 0)
+                    {
+
+                        <div class="line-header">
+
+                            <p class="line"></p>
+
+                            <h2>
+
+                                Trending Threads
+
+                            </h2>
+
+                            <p class="line"></p>
+
+                        </div>
+
+                        <div class="detached-contents-container">
+
+                            @foreach (var thread in Input.PopularThreads)
+                            {
+                                <div class="detached-contents">
+
+                                    <div class="detached-contents-image">
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                            <img src="@thread.PhotoUrlToString" />
+                                        </a>
+                                    </div>
+
+                                    <div class="detached-contents-text">
+
+                                        <p class="content-subheading">
+                                            @thread.CategoryToString <span class="divider">|</span>
+                                            @if (thread.CountryToString != null)
+                                            {
+                                                @thread.CountryToString
+                                                <span class="divider">|</span>
+                                            }
+                                            @thread.DateToString
+                                        </p>
+
+                                        <h1 class="content-heading">
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                                @thread.Title
+                                            </a>
+                                            <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = thread.ThreaderId})'>
+                                                @thread.ThreaderUsername
+                                            </a>
+                                        </h1>
+
+                                        <p class="content-summary">
+                                            @thread.Summary.Truncate(256)
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                                continue
+                                            </a>
+                                        </p>
+
+                                        <div class="content-stats">
+                                            <p> <span>@thread.ViewsToString</span> Views</p>
+                                            <p> <span>@thread.LikesToString</span> Likes</p>
+                                            <p> <span>@thread.HatesToString</span> Hates</p>
+                                            <p><span>@thread.CommentsToString </span> Comments</p>
+                                        </div>
+
+                                        <p class="content-save">
+                                            @if (thread.IsFollowingThread)
+                                            {
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(thread, false)'>
+                                                    Unsave
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(thread, true)'>
+                                                    Save For Later
+                                                </a>
+                                            }
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            }
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="no-content">
+
+                            <ErrorGif />
+
+                            <div class="no-contents-box">
+
+                                <h3>
+                                    No Result!
+                                </h3>
+
+                                <p>
+                                    No trending threads could be loaded
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    }
+
+                    if (Input.RecentWatchLists != null && Input.RecentWatchLists.Count > 0)
+                    {
+
+                        <div class="line-header">
+
+                            <p class="line"></p>
+
+                            <h2>
+
+                                Recent Watchlists
+
+                            </h2>
+
+                            <p class="line"></p>
+
+                        </div>
+
+                        <div class="numbered-contents-container">
+
+                            @foreach (var watchlist in Input.RecentWatchLists)
+                            {
+                                <div class="numbered-contents">
+
+                                    <div class="numbered-contents-number">
+                                        <h2>
+                                            / @watchlist.Count
+                                        </h2>
+                                    </div>
+                                    <div class="numbered-contents-text">
+                                        <p class="content-subheading">
+
+                                            @watchlist.CategoryToString<span class="divider">|</span>
+                                            @if (watchlist.CountryToString != null)
+                                            {
+                                                @watchlist.CountryToString
+                                                <span class="divider">|</span>
+                                            }
+                                            @watchlist.DateToString
+                                        </p>
+
+                                        <h1 class="content-heading">
+                                            @watchlist.Title
+
+                                        </h1>
+                                        <p class="content-summary">
+                                            @watchlist.Summary <br />
+                                            <a class="source" href="@watchlist.SourceUrl">@watchlist.SourceText</a>
+                                        </p>
+                                        <div class="content-stats">
+                                            <p> <span>@watchlist.FollowersToString</span> Watchers</p>
+                                            <p>
+                                                <span>@watchlist.TalesToString</span>
+
+                                                @if (watchlist.Tales > 0)
+                                                {
+                                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tales?watchlistId={watchlist.Id}")'>
+                                                        Linked Tales
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <a href="#" @onclick:preventDefault="true" class="disabled">
+                                                        Linked Tales
+                                                    </a>
+                                                }
+                                            </p>
+                                        </div>
+                                        <p class="content-save">
+                                            @if (watchlist.IsFollowingWatchlist)
+                                            {
+                                                <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => FollowWatchlist(watchlist, false)'>
+                                                    Stop Watching
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => FollowWatchlist(watchlist, true)'>
+                                                    Watch
+                                                </a>
+                                            }
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            }
+
+
+                        </div>
+
+                    }
+                    else
+                    {
+                        <div class="no-content">
+
+                            <ErrorGif />
+
+                            <div class="no-contents-box">
+
+                                <h3>
+                                    No Result!
+                                </h3>
+
+                                <p>
+                                    No recent watchlist could be loaded
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    }
+                }
+                else
+                {
+                    <LoadingComponent Type="--- loading recent contents ---" />
+                }
+            }
+            else
+            {
+                <ErrorComponent Message=@InputError Type="recent contents" />
+            }
+
+
+            <div class="new-writer-box">
+
+                <div class="top-logo"><img src="/images/logos/logo.png" />OutScribed</div>
+
+                <div class="new-writer-box-text">
+                    <h1>
+                        Ready For Some Adventure?
+                    </h1>
+                    <h2>
+                        Join Our Writing Team
+                    </h2>
+                    <h3>
+                        Our writers are a unique breed of imaginative individuals who use artistic tools
+                        such as allegories, satire, analogies, parodies, and sarcasm to analyze news & events.
+                    </h3>
+                    <div class="link">
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/become-a-writer", false)'>Get Started</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="container-footer">
+            <footer>
+
+                <div class="inner-footer">
+
+                    <div class="footer-logo">
+
+                        <h1 class="logo-text">
+                            OutScribed
+                        </h1>
+
+                        <h2>
+                            The Truth, The Fiction, & Everything In-between
+                        </h2>
+
+                    </div>
+
+                    <p>
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/about-us", false)'>About Us</a>
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/policies", false)'>Policy Statements</a>
+                    </p>
+
+                    <h4>
+
+                        &copy;2025 <a href="https://www.silverclaws.ng">SilverClaws Ng. Ltd.</a> All Rights Reserved.
+
+                    </h4>
+
+                </div>
+
+            </footer>
+        </div>
+    </div>
+ *@
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public NavTabs Tab { get; set; } = NavTabs.None;
+
+    bool ShowMenu { get; set; } = false;
+
+    bool ShowAccount { get; set; } = false;
+
+    bool ShowAdmin { get; set; } = false;
+
+    private void ShowAccountAction()
+    {
+        if(ShowAccount)
+            ShowAccount = false;
+
+        else
+        {
+            if(ShowAdmin)
+                ShowAdmin = false;
+
+            ShowAccount = true;
+
+        }
+    }
+
+    private void ShowAdminAction()
+    {
+        if (ShowAdmin)
+            ShowAdmin = false;
+
+        else
+        {
+            if (ShowAccount)
+                ShowAccount = false;
+
+            ShowAdmin = true;
+
+        }
+    }
+
+
+    bool IsAdmin { get; set; } = false;
+
+    bool IsWriter { get; set; } = false;
+
+    bool IsLoggedIn { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+         if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+
+        }
+
+        var result = await getHome.GetAsync("home", CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+        Components = new();
+
+        HasInput = true;
+
+        await GetRights();
+    }
+
+    public async Task Refresh()
+    {
+        await GetRights();
+
+        StateHasChanged();
+    }
+
+    public async Task GetRights()
+    {
+
+        if (RendererInfo.Name == "WebAssembly" && await authenticate.CheckLoggedInAsync())
+        {
+
+            var starterData = await localStorage.GetItemAsync<StarterData>("starterData");
+
+            if (starterData == null)
+            {
+                IsAdmin = false;
+
+                IsWriter = false;
+            }
+            else
+            {
+                IsAdmin = starterData.Role != RoleTypes.None && starterData.Role != RoleTypes.Writer;
+
+                IsWriter = starterData.Role != RoleTypes.None;
+
+                IsLoggedIn = true;
+            }
+
+        }
+
+    }
+
+
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+    bool IsModalOpen { get; set; } = false;
+
+    bool IsExpandModal { get; set; } = false;
+
+    public string? Info { get; set; }
+
+    int ScrollPosition { get; set; }
+
+
+    bool HasInput { get; set; } = false;
+
+    public HomepageContentsResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+
+  
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+    private async Task FollowTale(TaleSummary tale, bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/", false);
+        }
+
+        FollowTaleRequest formData = new()
+            {
+                TaleId = tale.Id,
+                Option = option
+            };
+
+        var result = await followTale.PatchAsync("tales/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            tale.IsFollowingTale = option;
+
+            tale.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("You followed a tale");
+
+            }
+            else
+            {
+                await SetInfo("You unfollowed a tale");
+
+            }
+
+        }
+    }
+
+    private async Task FollowWatchlist(WatchListSummary watchList, bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/", false);
+        }
+
+        FollowWatchListRequest formData = new()
+            {
+                WatchListId = watchList.Id,
+                Option = option
+            };
+
+        var result = await followWatchList.PatchAsync("watchlists/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            watchList.IsFollowingWatchlist = option;
+
+            watchList.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("You followed this watchlist");
+
+            }
+            else
+            {
+                await SetInfo("You unfollowed this watchlist");
+
+            }
+
+        }
+    }
+
+    private async Task FollowThread(ThreadsSummary thread, bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/", false);
+        }
+
+        FollowThreadRequest formData = new()
+            {
+                ThreadId = thread.Id,
+                Option = option
+            };
+
+        var result = await followThread.PatchAsync("threads/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            thread.IsFollowingThread = option;
+
+            thread.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("You followed this thread");
+
+            }
+            else
+            {
+                await SetInfo("You unfollowed this thread");
+
+            }
+
+        }
+    }
+
+
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        shouldRender = false;
+
+        Components.Insert(0, component);
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        await authenticate.CheckJwtTokenAsync();
+
+        if (component.ComponentType == ComponentTypes.UserProfile)
+        {
+            var result = await getProfile.GetAsync($"users/profile/{component.Id}", CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+
+            }
+            else
+            {
+                component.Profile = result.Value;
+            }
+        }
+
+        component.HasContents = true;
+
+        component.ComponentState = ComponentStates.Enter;
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (component.Success)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+
+                await SetInfo("Logged in");
+            }
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+        if (Components.Count == 0)
+        {
+            Components = new();
+
+            IsModalOpen = false;
+
+            await JsRuntime.InvokeVoidAsync("OnScrollToTop", ScrollPosition);
+        }
+
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnScrollToTop", ScrollPosition);
+
+        // StateHasChanged();
+
+    }
+
+}

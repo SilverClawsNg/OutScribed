@@ -1,0 +1,22 @@
+﻿@inject IAuthenticationServices authenticate
+@inject NavigationManager navigator
+@inject ILocalStorageService localStorage
+
+<header>
+
+    <h1 class="logo-text">
+        <a class="@(Tab == NavTabs.Home ? "active logo-text" : "logo-text")" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/")'>
+            OutScribed
+        </a>
+    </h1>
+
+    <h2>
+        The Truth, The Fiction, & Everything In-between
+    </h2>
+
+</header>
+
+@code{
+    [Parameter]
+    public NavTabs Tab { get; set; } = NavTabs.None;
+}

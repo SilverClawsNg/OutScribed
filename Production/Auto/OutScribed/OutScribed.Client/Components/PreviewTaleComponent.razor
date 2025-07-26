@@ -1,0 +1,134 @@
+﻿<div class="modal-header">
+
+    <div class="inner-modal-header">
+
+        <div class="modal-header-links">
+
+            <p>
+                Preview Tale
+            </p>
+
+        </div>
+
+        <div class="modal-header-menu">
+
+            <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="modal-body">
+
+    <div class="item-container">
+
+        <div class="item-header">
+
+            <p class="item-subheading">
+                @Component.TaleDraft.CategoryToString <span class="divider">|</span>
+                @if (Component.TaleDraft.CountryToString != null)
+                {
+                    @Component.TaleDraft.CountryToString
+                    <span class="divider">|</span>
+                }
+                @Component.TaleDraft.DateToString
+            </p>
+
+            <h1 class="item-heading">
+                @Component.TaleDraft.Title
+            </h1>
+
+            @if (Component.TaleDraft.Summary != null)
+            {
+                <h3 class="item-summary">
+                    @Component.TaleDraft.Summary
+                </h3>
+            }
+            else
+            {
+                <p class="not-found">No summary found!</p>
+            }
+
+        </div>
+
+        @if (Component.TaleDraft.PhotoUrlToString != null)
+        {
+            <div class="item-image">
+                <img src="@Component.TaleDraft.PhotoUrlToString" />
+            </div>
+        }
+        else
+        {
+            <p class="not-found">No image found!</p>
+        }
+
+        <div class="item-details">
+
+
+            @if (Component.TaleDraft.DetailsDecoded != null)
+            {
+                <div class="richtext">
+                    @(((MarkupString)Component.TaleDraft.DetailsDecoded).Sanitize())
+                </div>
+            }
+            else
+            {
+                <p class="not-found">No details found!</p>
+            }
+
+        </div>
+
+        <div class="item-tags">
+            @if (Component.TaleDraft.Tags != null)
+            {
+                @foreach (var tag in Component.TaleDraft.Tags)
+                {
+                    <p>
+                        <span>#</span>@tag
+                    </p>
+                }
+            }
+            else
+            {
+                <p class="not-found">No tags found!</p>
+            }
+        </div>
+
+
+    </div>
+
+</div>
+
+@code {
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    private async Task AddComponent(ComponentParameters component) =>
+    await OnAddComponent.InvokeAsync(component);
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+}

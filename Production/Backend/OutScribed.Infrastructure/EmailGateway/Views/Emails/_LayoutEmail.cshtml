@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="http://api.outscribed.com/styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+
+    <div class="outscribed-email-container">
+
+        <div class="outscribed-image-holder">
+            <img src="https://coversfiles.nyc3.cdn.digitaloceanspaces.com/logos/outscribed-logo.png" width="60" height="60" />
+        </div>
+
+        <h1 class="outscribed-subject-title">
+            @ViewBag.Title
+        </h1>
+
+        <div class="outscribed-contents-container">
+            @RenderBody()
+        </div>
+
+        <div class="outscribed-footer">
+            <h2>
+                OutScribed
+            </h2>
+            <h3>
+                The Truth, The Fiction, & Everything In-between
+            </h3>
+            <h4 style="font-family: 'Open Sans',sans-serif; font-weight: 600; text-align: center; font-size: 12px; line-height: 16px; color: #FFFFFF">
+                ©2021. All Rights Reserved.
+            </h4>
+        </div>
+
+    </div>
+
+</body>
+    
+</html>

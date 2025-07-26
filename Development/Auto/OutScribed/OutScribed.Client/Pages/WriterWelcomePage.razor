@@ -1,0 +1,303 @@
+﻿@page "/become-a-writer"
+
+@inject NavigationManager navigator
+@inject IJSRuntime JsRuntime
+@inject IAuthenticationServices authenticate
+
+<PageTitle>Becoming A Writer - OutScribed</PageTitle>
+
+@if (Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+            @foreach (var component in Components.OrderBy(c => c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.ApplyAsWriter)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <SubmitWriterApplicationForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                </div>
+
+            }
+        }
+
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.None" @ref="Navigation" />
+
+<main>
+
+    <div class="text-container">
+
+        <div class="text-container-header">
+
+            <h1 class="content-heading">
+                Join Our Writers' Guild
+            </h1>
+
+            <h2 class="content-summary">
+                Steps to becoming a writer for <span class="logo-text">OutScribed</span>
+            </h2>
+        </div>
+
+        <div class="text-container-contents">
+
+            <h3>
+                Intro
+            </h3>
+
+            <p>
+                So you have a passion for storytelling and a knack for uncovering hidden truths? 
+                Great. 
+            </p>
+
+            <p>
+                At OutScribed, we blend rigorous journalism with creative narrative to bring
+                news to life through both fact and fiction. We’re seeking writers who can use 
+                satire, analogies, parodies, and fresh perspectives to offer alternative intepretation of current events through
+                engaging, thought-provoking stories.
+            </p>
+
+            <p>
+                Here is a breakdown of what we are looking for:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Innovative Storytelling</strong>: Deliver factual news alongside imaginative, creative narratives.
+                </li>
+                <li>
+                    <strong>Critical Insight</strong>:  Offer reflections that illuminate cultural and societal trends.
+                </li>
+                <li>
+                    <strong>Community Engagement</strong>: Contribute to discussions, reply to reader feedback, and spark conversations.
+                </li>
+                <li>
+                    <strong>Integrity</strong>: Maintain accuracy and ethical reporting even as you explore alternative interpretations.
+                </li>
+            </ul>
+
+            <p>
+                If you’re excited to challenge conventional journalism and help shape a unique narrative landscape, we’d love to hear from you.
+            </p>
+
+            <h3>
+                Requirements
+            </h3>
+
+            <p>
+                To become an OutScribed writer, you must make a formal application with the 
+                following details:
+            </p>
+
+            <ul>
+                <li>
+                    <span>Location</span> Provide your complete location details which includes
+                    the street, city, state/province, and country.
+                </li>
+                <li>
+                    <span>Application</span> Provide an Adobe PDF file containing the following sections:
+                    <ul>
+                        <li>
+                            <span>
+                                Tell Us About Yourself
+                            </span>
+                            Provide a 500 words introduction of yourself specifically about childhood, growing up,
+                            family, career, etc.
+                        </li>
+                        <li>
+                            <span>
+                                Tell Us About Your Writing History
+                            </span>
+                            Provide a 500 words history of your writing career. What drives your imaginations?
+                            What genre is your strongest? Have you ever written professionally? What about short
+                            stories?
+                        </li>
+                        <li>
+                            <span>
+                                An Original Satire Short Story
+                            </span>
+                            Provide a 500 words satire short story that mimics the style of satire
+                            been promoted by OutScribed. (You would be free to publish this story, if accepted)
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p class="text-container-link">
+                <a href="#" @onclick:preventDefault="true" @onclick='() => SubmitApplication()'>
+                    Submit Application
+                </a>
+            </p>
+        </div>
+
+    </div>
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+    bool IsModalOpen { get; set; } = false;
+
+    public async Task SubmitApplication()
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/become-a-writer", false);
+        }
+
+        await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.ApplyAsWriter });
+
+    }
+
+
+    protected override void OnInitialized()
+    {
+        Components = new();
+    }
+
+    public string? Info { get; set; }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        shouldRender = false;
+
+        Components.Insert(0, component);
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        component.HasContents = true;
+
+        component.ComponentState = ComponentStates.Enter;
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+            }
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if (info != null)
+            await SetInfo(info);
+
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnModalClose");
+
+        // StateHasChanged();
+
+    }
+}

@@ -1,0 +1,184 @@
+﻿@page "/send/recovery/otp"
+
+@inject IApiPostServices<bool,SendOTPUsernameRequest> sendOtp
+@inject NavigationManager navigator
+
+<PageTitle>Password Recovery - OutScribed</PageTitle>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.None" />
+
+<main>
+
+    <EditForm Model=@FormData OnValidSubmit=@FormAction FormName="RecoveryForm">
+
+        <div class="form-contents">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="form-header">
+                <h1 class="content-heading">
+                   Password Reset
+                </h1>
+                <h2 class="content-summary">
+                    Request One-Time Password
+                    <a class="show-help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'></a>
+                </h2>
+            </div>
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <ul>
+                        <li>
+                            Getting OTP
+                        </li>
+                       <li>
+                           We may not be able to recover your missing password but we can help
+                           you get a new one.
+                       </li>
+                        <li>
+                            As the first of two (2) quick steps, we want to confirm your identity so we would like to send you a short token which
+                            you would be required to provide in the second step.
+                        </li>
+                      <li>
+                          Enter the email address or phoen number used in registration.
+                      </li>
+                    </ul>
+                </ul>
+            </div>
+
+            <div class="form-container alt">
+
+                <fieldset>
+
+                    <InputText @bind-Value=@FormData.Username id="Username" class="form-field" />
+
+                    <label class="@(FormData.Username == null || string.IsNullOrEmpty(FormData.Username) ?  null : "stay")">Username</label>
+
+                </fieldset>
+
+            </div>
+
+            <div class="form-footer">
+
+                <div class="form-footer-links">
+
+                    <button type="submit">
+                        Submit
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </EditForm>
+
+</main>
+
+<FooterComponent />
+
+@code {
+   
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    [SupplyParameterFromForm]
+    public SendOTPUsernameRequest FormData { get; set; } = default!;
+
+    bool PasswordVisible { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new();
+
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (editContext.Validate())
+        {
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await sendOtp.PostAsync("accounts/send/recovery/otp", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+            }
+            else
+            {
+
+                navigator.NavigateTo($"/reset/password/{FormData.Username}", false);
+
+            }
+
+        }
+        else
+        {
+
+            Progress = FormProgress.Error;
+
+            FormError = "Form failed validation";
+
+            return;
+        }
+    }
+}

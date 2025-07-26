@@ -1,0 +1,187 @@
+﻿@inject IAuthenticationServices authenticate
+@inject NavigationManager navigator
+@inject ILocalStorageService localStorage
+
+<nav class="@(ShowMenu ? "active" : null)">
+
+    <a class="@(ShowMenu ? "show-menu active" : "show-menu")" href="#" @onclick:preventDefault="true" @onclick='() => ShowMenu = !ShowMenu'></a>
+
+    <div class="@(ShowMenu ? "nav-divider active" : "nav-divider")">
+
+        <div class="left-nav">
+
+            <a class="@(Tab == NavTabs.About ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/about-us")'>About Us </a>
+
+            <a class="@(Tab == NavTabs.Contact ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/contact-us")'>Contact Us </a>
+
+        </div>
+
+        <div class="center-nav">
+
+            <a class="@(Tab == NavTabs.Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/tales")'>Tales </a>
+
+            <a class="@(Tab == NavTabs.Threads ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/threads")'>Threads</a>
+
+            <a class="@(Tab == NavTabs.WatchList ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/watchlists")'>Watchlists</a>
+
+            <a class="@(Tab == NavTabs.Writers ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/writers")'>Writers</a>
+
+            @if (IsLoggedIn)
+            {
+
+                <a class="@(ShowAccount ? "focus show-dropdown" : "show-dropdown")" href="#" @onclick:preventDefault="true" @onclick='() => ShowAccountAction()'>Account</a>
+
+                <div class="@(ShowAccount ? "focus dropdown" : "dropdown")">
+
+                    <a class="@(Tab == NavTabs.My_Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/tales")'>My Tales</a>
+
+                    <a class="@(Tab == NavTabs.My_Threads ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/threads")'>My Threads</a>
+
+                    <a class="@(Tab == NavTabs.Activities ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/activities")'>Activities</a>
+
+                </div>
+
+            }
+
+            @if (IsAdmin || IsWriter)
+            {
+
+                <a class="@(ShowAdmin ? "focus show-dropdown" : "show-dropdown")" href="#" @onclick:preventDefault="true" @onclick='() => ShowAdminAction()'>Admin</a>
+
+                <div class="@(ShowAdmin ? "focus dropdown" : "dropdown")">
+
+
+                    @if (IsAdmin)
+                    {
+
+                        <a class="@(Tab == NavTabs.Pool_Tales ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/pool/tales", false)'>Pool Tales </a>
+
+                        <a class="@(Tab == NavTabs.Team ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/pool/teams")'>Teams</a>
+
+                    }
+
+                    @if (IsWriter)
+                    {
+
+                        <a class="@(Tab == NavTabs.Pool_Watchlists ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/pool/watchlists")'>Pool Watchlists</a>
+                    }
+
+                </div>
+
+            }
+
+       
+        </div>
+
+        <div class="right-nav">
+
+
+            @if (IsLoggedIn)
+            {
+
+                <a class="@(Tab == NavTabs.Logout ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/logout", true)'>Log Out</a>
+
+                <a class="@(Tab == NavTabs.Profile ? "bolded active" : "bolded")" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/profile", false)'>Profile</a>
+
+            }
+            else
+            {
+                <a class="@(Tab == NavTabs.Login ? "active" : null)" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/login", true)'>Log In</a>
+
+                <a class="@(Tab == NavTabs.Register ? "bolded active" : "bolded")" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/registration/otp/email", false)'>Join Us</a>
+            }
+
+       
+        </div>
+
+    </div>
+
+</nav>
+
+@code {
+
+    [Parameter]
+    public NavTabs Tab { get; set; } = NavTabs.None;
+
+    bool ShowMenu { get; set; } = false;
+
+    bool ShowAccount { get; set; } = false;
+
+    bool ShowAdmin { get; set; } = false;
+
+    private void ShowAccountAction()
+    {
+        if (ShowAccount)
+            ShowAccount = false;
+
+        else
+        {
+            if (ShowAdmin)
+                ShowAdmin = false;
+
+            ShowAccount = true;
+
+        }
+    }
+
+    private void ShowAdminAction()
+    {
+        if (ShowAdmin)
+            ShowAdmin = false;
+
+        else
+        {
+            if (ShowAccount)
+                ShowAccount = false;
+
+            ShowAdmin = true;
+
+        }
+    }
+
+    bool IsAdmin { get; set; } = false;
+
+    bool IsWriter { get; set; } = false;
+
+    bool IsLoggedIn { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetRights();
+    }
+
+    public async Task Refresh()
+    {
+        await GetRights();
+
+        StateHasChanged();
+    }
+
+    public async Task GetRights()
+    {
+
+        if (RendererInfo.Name == "WebAssembly" && await authenticate.CheckLoggedInAsync())
+        {
+
+            var starterData = await localStorage.GetItemAsync<StarterData>("starterData");
+
+            if (starterData == null)
+            {
+                IsAdmin = false;
+
+                IsWriter = false;
+            }
+            else
+            {
+                IsAdmin = starterData.Role != RoleTypes.None && starterData.Role != RoleTypes.Writer;
+
+                IsWriter = starterData.Role != RoleTypes.None;
+
+                IsLoggedIn = true;
+            }
+
+        }
+       
+    }
+
+}

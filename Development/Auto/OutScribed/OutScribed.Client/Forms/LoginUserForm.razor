@@ -1,0 +1,246 @@
+﻿@inject IApiPatchServices<LoginResponse,LoginRequest> patchLogin
+@inject NavigationManager navigator
+@inject ILocalStorageService localStorage
+@inject HttpClient httpClient
+@using System.Net.Http.Headers
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="LoginForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Login Required
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+
+                <ul>
+                    <li>
+                        Signing Into Account
+                    </li>
+                    <li>
+                        Enter your username or password to login
+                    </li>
+                    <li>
+                        If you have forgotten your password, you may takes steps
+                        to reset it.  <a class="password" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/recovery/otp")'>
+                            Reset Password.
+                        </a>
+                    </li>
+                    <li>
+                        Equally you can create a new account if you don't already have one.
+                        <a class="register" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/registration/otp/email")'>
+                            Create Account
+                        </a>
+                    </li>
+                </ul>
+
+            </div>
+
+            <div class="form-container alt">
+
+                <fieldset>
+
+                    <InputText @bind-Value=@FormData.Username id="Username" class="form-field" />
+
+                    <label class="@(string.IsNullOrEmpty(FormData.Username) ?  null : "stay")">Username</label>
+
+                </fieldset>
+
+                <fieldset class="password-box">
+
+                    <a class="show-password" href="#" @onclick:preventDefault="true" @onclick="() => PasswordVisible = !PasswordVisible" id="show-password"> </a>
+
+                    <InputText @bind-Value=@FormData.Password id="Password" type="@(PasswordVisible == true ? "text" : "password")" class="form-field" />
+
+                    <label class="@(string.IsNullOrEmpty(FormData.Password) ?  null : "stay")">Password</label>
+
+                </fieldset>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+
+    [SupplyParameterFromForm]
+    public LoginRequest FormData { get; set; } = default!;
+
+    public StarterData StarterData { get; set; } = new();
+
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    bool PasswordVisible { get; set; } = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new();
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+      
+        if (editContext.Validate())
+        {
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await patchLogin.PatchAsync("accounts/login", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+            }
+            else
+            {
+
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Value.Token);
+
+                //add token to local storage for future user
+                await localStorage.SetItemAsync("jwtToken", result.Value.Token);
+
+                //add token to local storage for future user
+                await localStorage.SetItemAsync("refreshToken", result.Value.RefreshToken);
+
+                var starterData = new StarterData(result.Value.RegisterDate, result.Value.Username,
+                              result.Value.Title, result.Value.Bio, result.Value.EmailAddress, result.Value.PhoneNumber,
+                              result.Value.Followers, result.Value.ProfileViews, result.Value.IsHidden, result.Value.DisplayPhoto,
+                              result.Value.Role, result.Value.Contacts);
+
+                await localStorage.SetItemAsync("starterData", starterData);
+
+                Component.Info = "Logged In";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+
+            Progress = FormProgress.Error;
+
+            FormError = "Form failed validation";
+
+            return;
+        }
+    }
+
+}

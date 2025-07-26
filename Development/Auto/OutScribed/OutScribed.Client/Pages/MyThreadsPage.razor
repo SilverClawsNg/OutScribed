@@ -1,0 +1,731 @@
+﻿@page "/my/threads"
+
+@inject NavigationManager navigator
+@inject IApiGetServices<MyThreadsResponse> getThreads
+@inject IAuthenticationServices authenticate
+@inject ISelectServices getSelect
+@inject IApiGetServices<UserProfileResponse> getProfile
+@inject IJSRuntime JsRuntime
+
+<PageTitle>My Threads - OutScribed</PageTitle>
+
+@if (Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+            @foreach (var component in Components.OrderBy(c => c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+
+                    @if (component.ComponentType == ComponentTypes.UpdateThreadBasic)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateThreadBasicForm Component="component"
+                                                   OnExpandModal="ExpandModal"
+                                                   OnRemoveComponent="RemoveComponent"
+                                                   OnAddComponent="AddComponent" />
+                        }
+
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdateThreadSummary)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateThreadSummaryForm Component="component"
+                                                     OnExpandModal="ExpandModal"
+                                                     OnRemoveComponent="RemoveComponent"
+                                                     OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdateThreadPhoto)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateThreadPhotoForm Component="component"
+                                                   OnExpandModal="ExpandModal"
+                                                   OnRemoveComponent="RemoveComponent"
+                                                   OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdateThreadCountry)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateThreadCountryForm Component="component"
+                                                     OnExpandModal="ExpandModal"
+                                                     OnRemoveComponent="RemoveComponent"
+                                                     OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdateThreadTags)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateThreadTagsForm Component="component"
+                                                  OnExpandModal="ExpandModal"
+                                                  OnRemoveComponent="RemoveComponent"
+                                                  OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdateThreadDetails)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateThreadDetailsForm Component="component"
+                                                     OnExpandModal="ExpandModal"
+                                                     OnRemoveComponent="RemoveComponent"
+                                                     OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.AddThreadAddendum)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <AddThreadAddendumForm Component="component"
+                                                   OnExpandModal="ExpandModal"
+                                                   OnRemoveComponent="RemoveComponent"
+                                                   OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.PreviewThread)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <PreviewThreadComponent Component="component"
+                                                    OnExpandModal="ExpandModal"
+                                                    OnRemoveComponent="RemoveComponent"
+                                                    OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.PublishThread)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <PublishThreadForm Component="component"
+                                               OnExpandModal="ExpandModal"
+                                               OnRemoveComponent="RemoveComponent"
+                                               OnAddComponent="AddComponent" />
+                        }
+
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                                           OnRemoveComponent="RemoveComponent"
+                                           OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+
+                </div>
+
+            }
+
+        }
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.My_Threads" @ref="Navigation" />
+
+<main>
+
+    @if (InputError == null)
+    {
+
+        if (HasInput)
+        {
+
+            <div class="filter-container">
+
+                <div class="filter-header">
+
+                    <p>
+                        @Input.CounterToString
+                    </p>
+
+                    <div class="filter-links">
+                        <a href="#" class="filter" @onclick:preventDefault="true" @onclick='() => IsShowFilter = !IsShowFilter'>
+                            Filter
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="@(IsShowFilter ? "filter-contents active" : "filter-contents")">
+
+                <div class="form-container alt">
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@StatusClicked">
+
+                            <option value="-1"></option>
+
+                            <option value="true" selected="@(Input.IsOnline == true ? "selected" : null)">Online</option>
+
+                            <option value="false" selected="@(Input.IsOnline == false ? "selected" : null)">Offline</option>
+
+                        </select>
+
+                        <label class="@(IsOnline == null ? null : "stay")">Filter by Status</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@CategoryClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var category in Categories)
+                            {
+                                if (Category != null && category.Value == int.Parse(Category))
+                                {
+                                    <option value="@category.Value" selected="selected">@category.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@category.Value">@category.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Category) || Category == "-1" ? null : "stay")">Filter by Category</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@CountryClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var country in Countries)
+                            {
+                                if (Country != null && country.Value == int.Parse(Country))
+                                {
+                                    <option value="@country.Value" selected="selected">@country.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@country.Value">@country.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Country)  || Country == "-1" ? null : "stay")">Filter by Country</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <InputText @bind-Value=@Keyword id="Keyword" class="form-field" />
+
+                        <label class="@(string.IsNullOrEmpty(Keyword) ? null : "stay")">Filter by Keyword</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@SortClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var sort in Sorts)
+                            {
+                                if (Sort != null && sort.Value == int.Parse(Sort))
+                                {
+                                    <option value="@sort.Value" selected="selected">@sort.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@sort.Value">@sort.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Sort)  || Sort == "-1" ? null : "stay")">Order Results</label>
+
+                    </fieldset>
+
+                    <div class="button-holder">
+
+                        <button @onclick:preventDefault="true" @onclick='() => LoadInput()'>
+                            Get Threads
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            if (Input.Threads != null && Input.Threads.Count > 0)
+            {
+
+                <div class="brief-content-container">
+
+                    @foreach (var thread in Input.Threads)
+                    {
+
+                        <article class="brief-content">
+
+                            <p class="content-subheading">
+                                @thread.CategoryToString<span class="divider">|</span>
+                                @if (thread.CountryToString != null)
+                                {
+                                    @thread.CountryToString
+                                    <span class="divider">|</span>
+                                }
+                                @thread.DateToString
+                            </p>
+                            <h1 class="content-heading">
+                                @thread.Title
+                            </h1>
+
+                            <p class="content-summary">
+                                @thread.Summary
+                            </p>
+                            <p class="content-summary">
+                                tale/
+                                <a class="spin" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{thread.TaleUrl}", false)'>
+                                    @thread.TaleTitle
+                                </a>
+                            </p>
+                            <div class="content-links">
+
+                                @if (thread.IsOnline)
+                                {
+
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}")'>
+                                        Goto Page
+                                    </a>
+
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.AddThreadAddendum, ThreadDraft = thread})'>
+                                        Addendum
+
+                                    </a>
+
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.PreviewThread, ThreadDraft = thread})'>
+                                        Preview
+
+                                    </a>
+                                }
+                                else
+                                {
+
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UpdateThreadBasic, ThreadDraft = thread})'>
+                                        Basic
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UpdateThreadSummary, ThreadDraft = thread})'>
+                                        Summary
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UpdateThreadCountry, ThreadDraft = thread})'>
+                                        Country
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UpdateThreadPhoto, ThreadDraft = thread})'>
+                                        Photo
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UpdateThreadDetails, ThreadDraft = thread})'>
+                                        Details
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UpdateThreadTags, ThreadDraft = thread})'>
+                                        Tags
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.PreviewThread, ThreadDraft = thread})'>
+                                        Preview
+
+                                    </a>
+
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.PublishThread, ThreadDraft = thread})'>
+                                        Publish
+                                    </a>
+
+                                }
+
+                            </div>
+
+                        </article>
+
+                    }
+
+                </div>
+
+            }
+            else
+            {
+                <div class="no-content">
+
+                    <ErrorGif />
+
+                    <h3>
+                        No Result!
+                    </h3>
+
+                    @if (Input.Keyword != null)
+                    {
+                        <p>
+                            It appears no thread matches your keywords.
+                        </p>
+                        <p>
+                            Try searching again with more specific keywords. Note that we do not search common words
+                            like "is", "are", "them", etc.
+                        </p>
+
+                    }
+                    else
+                    {
+                        <p>
+                            It appears you have not spunned any thread. You can spin threads off
+                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/tales")'>tales </a>.
+                        </p>
+
+                    }
+
+                </div>
+
+            }
+
+        }
+        else
+        {
+            <LoadingComponent Type="--- loading user threads ---" />
+        }
+    }
+    else
+    {
+        <ErrorComponent Message=@InputError Type="threads" />
+    }
+
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+    bool IsModalOpen { get; set; } = false;
+
+    bool IsShowFilter { get; set; } = false;
+
+
+    public string? Info { get; set; }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+    List<DropdownList> Categories = new();
+
+    List<DropdownList> Countries = new();
+
+    List<DropdownList> Sorts = new();
+
+
+    string? Country { get; set; }
+
+    string? Category { get; set; }
+
+    string? Sort { get; set; }
+
+    private string? Keyword { get; set; }
+
+    bool? IsOnline { get; set; } = null;
+
+
+    public MyThreadsResponse Input { get; set; } = default!;
+
+
+    protected void CategoryClicked(ChangeEventArgs e)
+    {
+        Category = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void CountryClicked(ChangeEventArgs e)
+    {
+        Country = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void SortClicked(ChangeEventArgs e)
+    {
+        Sort = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void StatusClicked(ChangeEventArgs e)
+    {
+        IsOnline = e.Value == null ? null : bool.Parse(e.Value.ToString()!);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "Server")
+        {
+            navigator.NavigateTo($"/login?returnUrl=/my/threads", true);
+        }
+
+        Components = new();
+
+        Countries = getSelect.Get<Countries>();
+
+        Categories = getSelect.Get<Categories>();
+
+        Sorts = getSelect.Get<SortTypes>();
+
+        await LoadInput();
+
+
+    }
+
+    bool HasInput { get; set; } = false;
+
+    private string? InputError { get; set; }
+
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        shouldRender = false;
+
+        Components.Insert(0, component);
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        await authenticate.CheckJwtTokenAsync();
+
+        if (component.ComponentType == ComponentTypes.UserProfile)
+        {
+            var result = await getProfile.GetAsync($"users/profile/{component.Id}", CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+
+            }
+            else
+            {
+                component.Profile = result.Value;
+            }
+        }
+
+        component.HasContents = true;
+
+        component.ComponentState = ComponentStates.Enter;
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+            }
+           
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if (info != null)
+            await SetInfo(info);
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnModalClose");
+
+        // StateHasChanged();
+
+    }
+
+    public async Task LoadInput()
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/my/threads", false);
+        }
+
+        IsShowFilter = false;
+
+        HasInput = false;
+
+        InputError = null;
+
+        var url = "threads/drafts?";
+
+        if (!string.IsNullOrEmpty(Country) && Country != "-1")
+        {
+            Enum.TryParse(Country, out Countries country);
+
+            url = url + $"country={country}&";
+        }
+
+        if (!string.IsNullOrEmpty(Category) && Category != "-1")
+        {
+            Enum.TryParse(Category, out Categories category);
+
+            url = url + $"category={category}&";
+        }
+
+        if (!string.IsNullOrEmpty(Sort) && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (IsOnline != null)
+        {
+            url = url + $"isOnline={IsOnline}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        if (Input != null && Input.Pointer > 0)
+        {
+            url = url + $"pointer={Input.Pointer}&size=5";
+        }
+        else
+        {
+            url = url + "size=6";
+        }
+
+
+        var result = await getThreads.GetAsync(url, CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+}

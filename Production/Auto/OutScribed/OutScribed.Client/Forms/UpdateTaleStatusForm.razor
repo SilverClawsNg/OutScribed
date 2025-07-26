@@ -1,0 +1,477 @@
+﻿@inject IApiPatchServices<bool,UpdateTaleStatusRequest> updateTale
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateTaleStatusForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Update Tale
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved tale. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Updating Tales' Status
+                    </li>
+                    <li>
+                        Tales' statuses are used to monitor their transition until publication.
+                    </li>
+                    <li>
+                        A tale is first created and updated by a writer then submitted.
+                    </li>
+                    <li>
+                        After submission, the tale is checked to ensure it passes the minimal tests for legal culpabilities.
+                        During the check process, a tale can be rejected completely, returned to 
+                        the writer for a review, or confirmed.
+                    </li>
+                    <li>
+                        A tale which passes the legal check is now a candidate for editing. Here
+                        it is checked if it passes the quality standards and story format
+                        as popularized by OutScribed. An editor may choose to reject the tale completely, 
+                        return the tale to the writer for review or confirm it which may include 
+                        manually updating any aspect of the tale.
+                    </li>
+                    <li>
+                        A tale which has been edited would now be eligible for publication. The publisher
+                        may reject the tale completely, return it to the writer for review, or comfirm it
+                        for publication which may involve manually updating any aspect of the tale.
+                    </li>
+                    <li>
+                        If a tale is been rejected or returned to the writer for review, a reason must
+                        be included. Reasons are restricted to 1024 characters.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+
+                @if (Component.TaleDraft.Status == TaleStatuses.Created)
+                {
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset>
+
+                            <div class="tick-option">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.Submitted)" Id="@(TaleStatuses.Submitted)" />
+                                    <label for="@TaleStatuses.Submitted">Mark As Submitted</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+                else if (Component.TaleDraft.Status == TaleStatuses.UnChecked)
+                {
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset>
+
+                            <div class="tick-option">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.ReChecked)" Id="@(TaleStatuses.ReChecked)" />
+                                    <label for="@TaleStatuses.ReChecked">Re-Submit For Legal Vetting</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+                else if (Component.TaleDraft.Status == TaleStatuses.UnEdited)
+                {
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset>
+
+                            <div class="tick-option">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.ReEdited)" Id="@(TaleStatuses.ReEdited)" />
+                                    <label for="@TaleStatuses.ReEdited">Re-Submit For Story Relevance Vetting</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+                else if (Component.TaleDraft.Status == TaleStatuses.UnPublished)
+                {
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset>
+
+                            <div class="tick-option">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.RePublished)" Id="@(TaleStatuses.RePublished)" />
+                                    <label for="@TaleStatuses.RePublished">Re-Submit For Publication Vetting</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+                else if (Component.TaleDraft.Status == TaleStatuses.Submitted || Component.TaleDraft.Status == TaleStatuses.ReChecked)
+                {
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset class="alt">
+
+                            <div class="tick-option vertical">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.Checked)" Id="@(TaleStatuses.Checked)" />
+                                    <label for="@TaleStatuses.Checked"> Mark As Checked</label>
+                                </p>
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.UnChecked)" Id="@(TaleStatuses.UnChecked)" />
+                                    <label for="@TaleStatuses.UnChecked">Return For Review</label>
+                                </p>
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.OutChecked)" Id="@(TaleStatuses.OutChecked)" />
+                                    <label for="@TaleStatuses.OutChecked">Reject</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+                else if (Component.TaleDraft.Status == TaleStatuses.Checked || Component.TaleDraft.Status == TaleStatuses.ReEdited)
+                {
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset class="alt">
+
+                            <div class="tick-option vertical">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.Edited)" Id="@(TaleStatuses.Edited)" />
+                                    <label for="@TaleStatuses.Edited"> Mark As Edited</label>
+                                </p>
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.UnEdited)" Id="@(TaleStatuses.UnEdited)" />
+                                    <label for="@TaleStatuses.UnEdited">Return For Review</label>
+                                </p>
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.OutEdited)" Id="@(TaleStatuses.OutEdited)" />
+                                    <label for="@TaleStatuses.OutEdited">Reject</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+                else if (Component.TaleDraft.Status == TaleStatuses.Edited || Component.TaleDraft.Status == TaleStatuses.RePublished)
+                {
+
+
+                    <InputRadioGroup @bind-Value="FormData.Status">
+
+                        <fieldset class="alt">
+
+                            <div class="tick-option vertical">
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.Published)" Id="@(TaleStatuses.Published)" />
+                                    <label for="@TaleStatuses.Published"> Mark As Published</label>
+                                </p>
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.UnPublished)" Id="@(TaleStatuses.UnPublished)" />
+                                    <label for="@TaleStatuses.UnPublished">Return For Review</label>
+                                </p>
+
+                                <p>
+                                    <InputRadio Value="@(TaleStatuses.OutPublished)" Id="@(TaleStatuses.OutPublished)" />
+                                    <label for="@TaleStatuses.OutPublished">Reject</label>
+                                </p>
+
+                            </div>
+
+                            <label class="stay">Status</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.Status" />
+
+                }
+
+                @if (FormData.Status == TaleStatuses.UnChecked || FormData.Status == TaleStatuses.UnEdited || FormData.Status == TaleStatuses.UnPublished
+                || FormData.Status == TaleStatuses.OutChecked || FormData.Status == TaleStatuses.OutEdited || FormData.Status == TaleStatuses.OutPublished)
+                {
+
+                    <fieldset class="alt">
+                        <InputTextArea @bind-Value=FormData.Reasons id="Reasons" class="form-field" />
+                        <label class="@(string.IsNullOrEmpty(FormData.Reasons) ? null : "stay")">Reasons</label>
+                        <ValidationMessage For="() => FormData.Reasons" />
+                    </fieldset>
+
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public UpdateTaleStatusRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+            {
+                Id = Component.TaleDraft.Id
+            };
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await updateTale.PatchAsync("tales/update/status", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+
+                if(FormData.Status != null)
+                {
+                    Component.TaleDraft.Status = (TaleStatuses)FormData.Status;
+
+                    Component.Info = "Status Updated";
+
+                }
+                
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}

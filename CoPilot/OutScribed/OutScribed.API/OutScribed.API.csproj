@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastEndpoints" Version="6.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OutScribed.Application.Queries\OutScribed.Application.Queries.csproj" />
+    <ProjectReference Include="..\OutScribed.Infrastructure\OutScribed.Infrastructure.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Discovery.Application\OutScribed.Modules.Discovery.Application.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Identity.Application\OutScribed.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Jail.Application\OutScribed.Modules.Jail.Application.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Onboarding.Application\OutScribed.Modules.Onboarding.Application.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Opinion.Application\OutScribed.Modules.Analysis.Application.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Publishing.Application\OutScribed.Modules.Publishing.Application.csproj" />
+    <ProjectReference Include="..\OutScribed.Modules.Tagging.Application\OutScribed.Modules.Tagging.Application.csproj" />
+  </ItemGroup>
+
+</Project>

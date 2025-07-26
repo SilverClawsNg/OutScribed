@@ -1,0 +1,107 @@
+﻿@inject NavigationManager navigator
+
+<div class="modal-header">
+
+    <div class="inner-modal-header">
+
+        <div class="modal-header-links">
+
+            <p>
+                History
+            </p>
+
+        </div>
+
+        <div class="modal-header-menu">
+
+            <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="modal-body">
+
+    <div class="inner-modal-body">
+
+        <div class="tale-histories">
+
+            @foreach (var history in Component.TaleHistory)
+            {
+
+                <div class="tale-history">
+
+                    <section>
+                        <p class="type">Date</p>
+                        <p class="value">
+                            @history.DateToString
+                        </p>
+                    </section>
+                    <section>
+                        <p class="type">Status</p>
+                        <p class="value">
+                            @history.StatusToString
+                        </p>
+                    </section>
+                    <section>
+                        <p class="type">Admin</p>
+                        <p class="value">
+                            <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = history.AdminId})'>
+                                @history.AdminUsername
+                            </a>
+                        </p>
+                    </section>
+                    @if (history.Reasons != null)
+                    {
+                        <section>
+                            <p class="type">Reasons</p>
+                            <p class="value">
+                                @history.Reasons
+                            </p>
+                        </section>
+                    }
+
+                </div>
+
+            }
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+   
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    private async Task AddComponent(ComponentParameters component) =>
+    await OnAddComponent.InvokeAsync(component);
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+}

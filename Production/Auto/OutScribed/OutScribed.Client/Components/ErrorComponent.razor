@@ -1,0 +1,29 @@
+﻿@inject NavigationManager navigator
+
+<div class="loading-container">
+
+    <div class="progress-image-container-top fails">
+
+        <div class="progress-image-container-mid fails">
+
+            <div class="progress-image-container fails">
+                <i class="fa fa-remove"></i>
+            </div>
+
+        </div>
+
+    </div>
+
+    <p class="loading-message"> Error encountered while loading @Type. Error: <span class="error">@Message</span>. Please refresh page. </p>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public required string Message { get; set; }
+
+    [Parameter]
+    public required string Type { get; set; }
+
+}

@@ -1,0 +1,275 @@
+﻿@page "/login"
+
+@inject IApiPatchServices<LoginResponse,LoginRequest> patchLogin
+@using System.Net.Http.Headers
+@using System.Text.Json
+@inject HttpClient httpClient
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<PageTitle>Login - OutScribed</PageTitle>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Login" />
+
+<main>
+
+    @if (OpenForm)
+    {
+
+        <EditForm Model=@FormData OnValidSubmit=@FormAction FormName="LoginForm">
+
+            <div class="form-contents">
+
+                @if (Progress == FormProgress.Loading)
+                {
+                    <div class="form-progress">
+
+                        <LoadingGif />
+
+                        <p class="progress-message">@FormMessage </p>
+
+                        <div class="progress-links">
+                            <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                                Cancel
+                            </a>
+                        </div>
+
+                    </div>
+
+                }
+                else if (Progress == FormProgress.Error)
+                {
+                    <div class="form-progress">
+
+                        <ErrorGif />
+
+                        <p class="progress-message">
+                            An error occured: <span class="error"> @FormError </span>
+                        </p>
+                        <div class="progress-links">
+
+                            <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                                Retry
+                            </a>
+                        </div>
+                    </div>
+
+                }
+
+                <div class="form-header">
+                    <h1 class="content-heading">
+                        Login
+                    </h1>
+                    <h2 class="content-summary">
+                        Enter your credentials to login
+                        <a class="show-help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'></a>
+                    </h2>
+                </div>
+
+                <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                    <ul>
+                        <li>
+                            Signing Into Account
+                        </li>
+                        <li>
+                            Enter your username or password to login
+                        </li>
+                        <li>
+                            If you have forgotten your password, you may takes steps
+                            to reset it.  <a class="password" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/recovery/otp")'>
+                                Reset Password.
+                            </a>
+                        </li>
+                        <li>
+                            Equally you can create a new account if you don't already have one.
+                            <a class="register" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/registration/otp/email")'>
+                                Create Account
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="form-container alt">
+
+                    <fieldset>
+
+                        <InputText @bind-Value=@FormData.Username id="Username" class="form-field" />
+
+                        <label class="@(string.IsNullOrEmpty(FormData.Username) ?  null : "stay")">Username</label>
+
+                    </fieldset>
+
+                    <fieldset class="password-box">
+
+                        <a class="show-password" href="#" @onclick:preventDefault="true" @onclick="() => PasswordVisible = !PasswordVisible" id="show-password"> </a>
+
+                        <InputText @bind-Value=@FormData.Password id="Password" type="@(PasswordVisible == true ? "text" : "password")" class="form-field" />
+
+                        <label class="@(string.IsNullOrEmpty(FormData.Password) ?  null : "stay")">Password</label>
+
+                    </fieldset>
+
+                </div>
+
+                <div class="form-footer">
+
+                    <div class="form-footer-links">
+
+                        <button type="submit">
+                            Submit
+                        </button>
+
+                    </div>
+
+                    <div class="form-footer-options">
+                        <a class="password" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/recovery/otp")'>
+                            Forgot Password?
+                        </a>
+                        <span>|</span>
+                        <a class="register" href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/send/registration/otp/email")'>
+                            Create Account
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </EditForm>
+
+    }
+    else
+    {
+        <LoadingComponent Type="--- checking previous login ---" />
+    }
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [SupplyParameterFromQuery] 
+    public string? ReturnUrl { get; set; }
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    private bool OpenForm = false;
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    [SupplyParameterFromForm]
+    public LoginRequest FormData { get; set; } = default!;
+
+    bool PasswordVisible { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if(RendererInfo.Name == "WebAssembly")
+        {
+            if (await authenticate.CheckJwtTokenAsync())
+            {
+                GoToPage(true);
+            }
+        }
+
+        FormData = new();
+
+        OpenForm = true;
+
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (editContext.Validate())
+        {
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await patchLogin.PatchAsync("accounts/login", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+            }
+            else
+            {
+
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", result.Value.Token);
+
+                //add token to local storage for future user
+                await localStorage.SetItemAsync("jwtToken", result.Value.Token);
+
+                //add token to local storage for future user
+                await localStorage.SetItemAsync("refreshToken", result.Value.RefreshToken);
+
+
+                var starterData = new StarterData(result.Value.RegisterDate, result.Value.Username,
+                result.Value.Title, result.Value.Bio, result.Value.EmailAddress, result.Value.PhoneNumber, 
+                result.Value.Followers, result.Value.ProfileViews, result.Value.IsHidden, result.Value.DisplayPhoto,
+                result.Value.Role, result.Value.Contacts);
+
+                await localStorage.SetItemAsync("starterData", starterData);
+
+                GoToPage(true);
+
+            }
+
+        }
+        else
+        {
+
+            Progress = FormProgress.Error;
+
+            FormError = "Form failed validation";
+
+            return;
+        }
+    }
+
+    public void GoToPage(bool option)
+    {
+
+        if (ReturnUrl == null)
+        {
+            if (option)
+            {
+                navigator.NavigateTo("/my/profile", false);
+            }
+            else
+            {
+                navigator.NavigateTo("/", false);
+            }
+        }
+        else
+        {
+            navigator.NavigateTo(ReturnUrl, false);
+        }
+
+    }
+}

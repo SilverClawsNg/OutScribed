@@ -1,0 +1,470 @@
+﻿@inject IAuthenticationServices authenticate
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IApiPatchServices<CountsResponse,FollowThreadRequest> followThread
+
+<div class="modal-header">
+
+    <div class="inner-modal-header">
+
+        <h1>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => CloseModal())'>
+                Thread
+            </a>
+
+        </h1>
+
+        <div class="modal-header-menu">
+
+            <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+@if (Component.ErrorMessage == null)
+{
+
+}
+else
+{
+    <ErrorComponent Message=@Component.ErrorMessage
+                    Type="tale comments" />
+}
+
+<div class="modal-body">
+
+    <div class="inner-modal-body">
+
+        <div class="filter-container">
+
+            <div class="filter-header alt">
+
+                <p>
+                    @Component.TaleThreads.CounterToString
+                </p>
+
+                <div class="filter-links">
+                    <a href="#" class="filter" @onclick:preventDefault="true" @onclick='() => IsShowFilter = !IsShowFilter'>
+                        Filter
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="@(IsShowFilter ? "filter-contents active" : "filter-contents")">
+
+            <div class="form-container alt">
+
+                <fieldset>
+
+                    <select class="form-field" @onchange="@CategoryClicked">
+
+                        <option value="-1"></option>
+
+                        @foreach (var category in Categories)
+                        {
+                            if (Category != null && category.Value == int.Parse(Category))
+                            {
+                                <option value="@category.Value" selected="selected">@category.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@category.Value">@category.Text</option>
+                            }
+                        }
+
+                    </select>
+
+                    <label class="@(Category == null || string.IsNullOrEmpty(Category) || Category == "-1" ? null : "stay")">Filter by Category</label>
+
+                </fieldset>
+
+                <fieldset>
+
+                    <select class="form-field" @onchange="@CountryClicked">
+
+                        <option value="-1"></option>
+
+                        @foreach (var country in Countries)
+                        {
+                            if (Country != null && country.Value == int.Parse(Country))
+                            {
+                                <option value="@country.Value" selected="selected">@country.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@country.Value">@country.Text</option>
+                            }
+                        }
+
+                    </select>
+
+                    <label class="@(Country == null || string.IsNullOrEmpty(Country) || Country == "-1" ? null : "stay")">Filter by Country</label>
+
+                </fieldset>
+
+                <fieldset>
+
+                    <InputText @bind-Value=@Keyword id="Keyword" class="form-field" />
+
+                    <label class="@(string.IsNullOrEmpty(Keyword) ? null : "stay")">Filter by Keyword</label>
+
+                </fieldset>
+
+                <fieldset>
+
+                    <select class="form-field" @onchange="@SortClicked">
+
+                        <option value="-1"></option>
+
+                        @foreach (var sort in Sorts)
+                        {
+                            if (Sort != null && sort.Value == int.Parse(Sort))
+                            {
+                                <option value="@sort.Value" selected="selected">@sort.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@sort.Value">@sort.Text</option>
+                            }
+                        }
+
+                    </select>
+
+                    <label class="@(string.IsNullOrEmpty(Sort) || Sort == "-1" ? null : "stay")">Order Results</label>
+
+                </fieldset>
+
+                <div class="button-holder">
+
+                    <button @onclick:preventDefault="true" @onclick='() => Filter()'>
+                        Get Threads
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        @if (Component.TaleThreads.Threads != null && Component.TaleThreads.Threads.Count > 0)
+        {
+
+            <div class="content-summary-container">
+
+                @foreach (var thread in Component.TaleThreads.Threads)
+                {
+                    <article class="content-summary">
+
+                        <p class="content-summary-subheading">
+                            @thread.CategoryToString<span class="divider">|</span>
+                            @if (thread.CountryToString != null)
+                            {
+                                @thread.CountryToString
+                                <span class="divider">|</span>
+                            }
+                            @thread.DateToString
+                        </p>
+                        <h1 class="content-summary-heading">
+                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                @thread.Title
+                            </a>
+                            <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = thread.ThreaderId})'>
+                                @thread.ThreaderUsername
+                            </a>
+                        </h1>
+                        <p class="content-summary">
+                            @thread.Summary.Truncate(256)
+                            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/thread/{thread.ThreadUrl}", false)'>
+                                continue
+                            </a>
+                        </p>
+                        <div class="content-summary-stats">
+                            <p> <span>@thread.Views</span> Views</p>
+                            <p> <span>@thread.Likes</span> Likes</p>
+                            <p> <span>@thread.Hates</span> Hates</p>
+                            <p><span>@thread.Comments </span> Comments</p>
+                        </div>
+                        <p class="content-save">
+                            @if (thread.IsFollowingThread)
+                            {
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(thread, false)'>
+                                    Unfollow
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(thread, true)'>
+                                    Save For Later
+                                </a>
+                            }
+                        </p>
+
+                    </article>
+                }
+
+            </div>
+
+            <div class="navigation-container">
+
+                <div class="navigation-links">
+
+                    @if (Component.TaleThreads.Previous)
+                    {
+                        <a href="#" class="previous" @onclick:preventDefault="true" @onclick='() => LoadMore(0)'></a>
+                    }
+                    else
+                    {
+                        <a href="#" class="previous disabled" @onclick:preventDefault="true"></a>
+                    }
+                    @if (Component.TaleThreads.Next)
+                    {
+                        <a href="#" class="next" @onclick:preventDefault="true" @onclick='() => LoadMore(1)'> </a>
+                    }
+                    else
+                    {
+                        <a href="#" class="next disabled" @onclick:preventDefault="true"></a>
+                    }
+
+                </div>
+
+            </div>
+
+        }
+        else
+        {
+            <div class="no-content">
+
+                <ErrorGif />
+
+                <h3>
+                    No Result!
+                </h3>
+
+                @if (Component.TaleThreads.Keyword != null)
+                {
+                    <p>
+                        It appears no threads matches your keywords.
+                    </p>
+                    <p>
+                        Try searching again with more specific keywords. Note that we do not search common words
+                        like "is", "are", "them", etc.
+                    </p>
+
+                }
+
+                else
+                {
+                    <p>
+                        No comment found!
+                    </p>
+                }
+                <p>
+                    It appears there are currently no threads for this tale.
+                </p>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+
+    bool Window { get; set; } = false;
+
+    bool IsShowFilter { get; set; } = false;
+
+
+    List<DropdownList> Countries = new();
+
+    List<DropdownList> Sorts = new();
+
+    List<DropdownList> Categories = new();
+
+
+    string? Category { get; set; } = null;
+
+    string? Country { get; set; } = null;
+
+    string? Sort { get; set; } = null;
+
+    private string? Keyword { get; set; } = null;
+
+
+    protected override void OnInitialized()
+    {
+
+        Countries = getSelect.Get<Countries>();
+
+        Categories = getSelect.Get<Categories>();
+
+        Sorts = getSelect.Get<SortTypes>();
+
+    }
+
+    protected void CategoryClicked(ChangeEventArgs e)
+    {
+        Category = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void CountryClicked(ChangeEventArgs e)
+    {
+        Country = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void SortClicked(ChangeEventArgs e)
+    {
+        Sort = e.Value == null ? null : e.Value.ToString();
+    }
+
+    [Parameter]
+    public EventCallback<string> OnSetInfo { get; set; }
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback OnCloseModal { get; set; }
+
+    private async Task CloseModal() =>
+       await OnCloseModal.InvokeAsync();
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    private async Task AddComponent(ComponentParameters component) =>
+    await OnAddComponent.InvokeAsync(component);
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+    private async Task SetInfo(string info) =>
+       await OnSetInfo.InvokeAsync(info);
+
+    public async Task LoadMore(int type)
+    {
+        if (type == 0)
+            Component.TaleThreads.Pointer--;
+        else if (type == 1)
+            Component.TaleThreads.Pointer++;
+
+        if (Component.TaleThreads.Pointer >= 0)
+        {
+
+            await Filter();
+
+        }
+
+    }
+
+    public async Task Filter()
+    {
+      
+        var url = $"threads/tale/{Component.TaleThreads.TaleId}?";
+
+        if (!string.IsNullOrEmpty(Category) && Category != "-1")
+        {
+            Enum.TryParse(Category, out Categories category);
+
+            url = url + $"category={category}&";
+        }
+
+        if (!string.IsNullOrEmpty(Country) && Country != "-1")
+        {
+            Enum.TryParse(Country, out Countries country);
+
+            url = url + $"country={country}&";
+        }
+
+        if (!string.IsNullOrEmpty(Sort) && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        url = url + $"pointer={Component.TaleThreads.Pointer}&size=5";
+
+        Component.Reload = true;
+
+        await OnAddComponent.InvokeAsync(Component);
+    }
+
+    private async Task FollowThread(ThreadsSummary thread, bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        FollowThreadRequest formData = new()
+            {
+                ThreadId = thread.Id,
+                Option = option
+            };
+
+        var result = await followThread.PatchAsync("threads/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            thread.IsFollowingThread = option;
+
+            thread.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("You followed this thread");
+
+            }
+            else
+            {
+                await SetInfo("You unfollowed this thread");
+
+            }
+
+        }
+    }
+
+}

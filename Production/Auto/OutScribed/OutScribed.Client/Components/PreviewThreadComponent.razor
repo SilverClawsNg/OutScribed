@@ -1,0 +1,152 @@
+﻿<div class="modal-header">
+
+    <div class="inner-modal-header">
+
+        <div class="modal-header-links">
+
+            <p>
+                Preview Thread
+            </p>
+
+        </div>
+
+        <div class="modal-header-menu">
+
+            <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="modal-body">
+
+    <div class="item-container">
+
+        <div class="item-header">
+
+            <p class="item-subheading">
+                @Component.ThreadDraft.CategoryToString<span class="divider">|</span>
+                @if (Component.ThreadDraft.CountryToString != null)
+                {
+                    @Component.ThreadDraft.CountryToString
+                    <span class="divider">|</span>
+                }
+                @Component.ThreadDraft.DateToString
+            </p>
+
+            <h1 class="item-heading">
+                @Component.ThreadDraft.Title
+            </h1>
+
+            @if (Component.ThreadDraft.Summary != null)
+            {
+                <h3 class="item-summary">
+                    @Component.ThreadDraft.Summary
+                </h3>
+            }
+            else
+            {
+                <p class="not-found">No summary found!</p>
+            }
+
+        </div>
+
+        @if (Component.ThreadDraft.PhotoUrlToString != null)
+        {
+            <div class="item-image">
+                <img src="@Component.ThreadDraft.PhotoUrlToString" />
+            </div>
+        }
+        else
+        {
+            <p class="not-found">No image found!</p>
+        }
+
+        <div class="item-details">
+
+            @if (Component.ThreadDraft.DetailsDecoded != null)
+            {
+                <div class="richtext">
+                    @(((MarkupString)Component.ThreadDraft.DetailsDecoded).Sanitize())
+                </div>
+            }
+            else
+            {
+                <p class="not-found">No details found!</p>
+            }
+
+            @if(Component.ThreadDraft.Addendums != null && Component.ThreadDraft.Addendums.Count > 0)
+            {
+                <h4 class="addendum-header">
+                    Addendums
+                </h4>
+
+                @foreach(var addendum in Component.ThreadDraft.Addendums)
+                {
+                    <div class="addendum-container">
+                        <p class="addendum-date">
+                            @addendum.DateToString
+                        </p>
+                        <div class="richtext">
+                            @(((MarkupString)addendum.DetailsDecoded).Sanitize())
+                        </div>
+                    </div>
+                }
+            }
+
+      
+        </div>
+
+        <div class="item-tags">
+            @if (Component.ThreadDraft.Tags != null)
+            {
+                @foreach (var tag in Component.ThreadDraft.Tags)
+                {
+                    <p>
+                        <span>#</span>@tag
+                    </p>
+                }
+            }
+            else
+            {
+                <p class="not-found">No tags found!</p>
+            }
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    private async Task AddComponent(ComponentParameters component) =>
+    await OnAddComponent.InvokeAsync(component);
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+}

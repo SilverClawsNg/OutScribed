@@ -1,0 +1,12 @@
+﻿@model Backend.Infrastructure.EmailGateway.ViewModels.SendVerificationOtpMailVM
+
+@{
+    Layout = "/Views/Email/_LayoutEmail.cshtml";
+    ViewBag.Title = Model.Topic;
+}
+
+<p style="font-family: Fakt,sans-serif; font-size: 16px; line-height: 22px; margin-bottom:5px;"> Congrats. You are a step away from completing your registration.</p>
+<p style="font-family: Fakt,sans-serif; font-size: 16px; line-height: 22px; margin-bottom:5px;"> Use the token below to verify your identity.</p>
+<p style="font-family: Fakt,sans-serif; font-size: 30px; line-height: 40px; font-weight: 900; margin: 20px 0; "> @Model.Otp</p>
+
+

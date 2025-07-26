@@ -1,0 +1,281 @@
+﻿@inject NavigationManager navigator
+@inject IApiPatchServices<CountsResponse,FollowUserRequest> followUser
+@inject IAuthenticationServices authenticate
+
+
+<div class="modal-header">
+
+    <div class="inner-modal-header">
+
+        <h1>
+            Profile
+        </h1>
+
+        <div class="modal-header-menu">
+
+            <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+            <a href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+@if (Component.ErrorMessage == null)
+{
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            <div class="user-profile-heading">
+
+                <h1 class="at">
+                    @Component.Profile.Username
+                </h1>
+
+                <h2>
+                    User Since @Component.Profile.RegisterDateToString <br />
+                    @Component.Profile.ProfileViews Views <span>|</span> @Component.Profile.Followers Followers
+                </h2>
+
+            </div>
+
+            <div class="user-details-container">
+
+                <div class="user-details">
+
+                    @if (Component.Profile.Title == null)
+                    {
+                        <div class="no-profile">
+                            No <br /> Profile
+                        </div>
+                    }
+                    else if (Component.Profile.IsHidden)
+                    {
+                        <div class="no-profile">
+                            Hidden <br /> Profile
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="user-photo">
+
+                            <img src="@Component.Profile.DisplayPhotoToString" />
+
+                        </div>
+
+                        <h2>
+                            @Component.Profile.Title
+                        </h2>
+
+                        <h3>
+                            @Component.Profile.Bio
+                        </h3>
+
+                        <div class="dual-link-container">
+
+                            <p class="dual-link">
+                                @if (Component.Profile.IsFollowingUser)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowUser(false)'>
+                                        Unfollow - @Component.Profile.Followers
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowUser(true)'>
+                                        Follow - @Component.Profile.Followers
+                                    </a>
+                                }
+                                <a href="#" class="disabled">
+                                    Profile Views - @Component.Profile.ProfileViews
+                                </a>
+                            </p>
+
+                            <p class="dual-link">
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tales?user={Component.Profile.Username}", false)'>
+                                    Tales - @Component.Profile.Tales
+                                </a>
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/threads?user={Component.Profile.Username}", false)'>
+                                    Threads - @Component.Profile.Threads
+                                </a>
+                            </p>
+
+                        </div>
+                    }
+
+                </div>
+
+                <div class="contacts-container">
+
+                    <div class="contact">
+                        <div class="icon">
+                            <p class="facebook"></p>
+                        </div>
+                        <p class="text">
+                            Facebook
+                        </p>
+
+                        @if (Component.Profile.Facebook == null)
+                        {
+                            <p class="not-found">Not found!</p>
+                        }
+                        else
+                        {
+                            <p class="value">@Component.Profile.Facebook</p>
+                        }
+
+                    </div>
+
+                    <div class="contact">
+                        <div class="icon">
+                            <p class="twitter"></p>
+                        </div>
+                        <p class="text">
+                            Twitter (X)
+                        </p>
+
+                        @if (Component.Profile.Twitter == null)
+                        {
+                            <p class="not-found">Not found!</p>
+                        }
+                        else
+                        {
+                            <p class="value">@Component.Profile.Twitter</p>
+                        }
+
+                    </div>
+
+                    <div class="contact">
+                        <div class="icon">
+                            <p class="linkedin"></p>
+                        </div>
+                        <p class="text">
+                            LinkedIn
+                        </p>
+
+                        @if (Component.Profile.LinkedIn == null)
+                        {
+                            <p class="not-found">Not found!</p>
+                        }
+                        else
+                        {
+                            <p class="value">@Component.Profile.LinkedIn</p>
+                        }
+
+                    </div>
+
+                    <div class="contact">
+                        <div class="icon">
+                            <p class="email"></p>
+                        </div>
+                        <p class="text">
+                            Email Address
+                        </p>
+
+                        @if (Component.Profile.Email == null)
+                        {
+                            <p class="not-found">Not found!</p>
+                        }
+                        else
+                        {
+                            <p class="value">@Component.Profile.Email</p>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+}
+else
+{
+    <ErrorComponent Message=@Component.ErrorMessage
+                    Type="tale comments" />
+}
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSetInfo { get; set; }
+
+    private async Task SetInfo(string info) =>
+     await OnSetInfo.InvokeAsync(info);
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+    private async Task FollowUser(bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+        }
+
+        FollowUserRequest formData = new()
+            {
+                UserId = Component.Id,
+                Option = option
+            };
+
+        var result = await followUser.PatchAsync("accounts/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Component.Profile.IsFollowingUser = option;
+
+            Component.Profile.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("You followed a user");
+
+            }
+            else
+            {
+                await SetInfo("You unfollowed a user");
+
+            }
+
+        }
+    }
+
+}

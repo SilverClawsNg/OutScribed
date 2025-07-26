@@ -1,0 +1,279 @@
+﻿@page "/verify/registration/otp/email/{EmailAddress}"
+
+
+@inject IApiPatchServices<bool,VerifyOTPEmailRequest> verifyOTP
+@inject IApiPatchServices<bool,ResendOTPEmailRequest> resendOTP
+@inject NavigationManager navigator
+
+<PageTitle>Register - OutScribed</PageTitle>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Register" />
+
+<main>
+
+    <EditForm Model=@FormData OnValidSubmit=@FormAction FormName="RegisterForm">
+
+        <div class="form-contents">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="form-header">
+                <h1 class="content-heading">
+                    Registration /2
+                </h1>
+                <h2 class="content-summary">
+                    Enter One-Time Password
+                    <a class="show-help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'></a>
+                </h2>
+            </div>
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Verifying Token
+                    </li>
+                    <li>
+                        As the second step in your registration, provide the token that was recently
+                        sent to your email address.
+                    </li>
+                    <li>
+                        Ensure that you check your email spam in case you did not find it
+                        in your inbox else wait a few seconds and request for it to be resent.
+                    </li>
+                    <li>
+                        Do not attempt multiple requests within a short period ogf time to avoid a system pause.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container alt">
+
+                <fieldset>
+
+                    <InputNumber @bind-Value=@FormData.Otp id="Otp" class="form-field" />
+
+                    <label class="stay">OTP</label>
+
+                </fieldset>
+
+            </div>
+            <div class="form-footer">
+
+                <div class="form-footer-links">
+
+                    <button type="submit">
+                        Submit
+                    </button>
+
+                </div>
+
+                <div class="form-footer-options">
+                    <a href="#" @onclick:preventDefault="true" @onclick="ResendTokenAction" class="@(CanResend ? string.Empty : "disabled" )">
+                        Resend OTP
+                        @if (Timer != 0)
+                        {
+                            <span>in @Timer seconds</span>
+                        }
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </EditForm>
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public string EmailAddress { get; set; } = null!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    public bool CanResend { get; set; } = false;
+
+    public int Timer { get; set; }
+
+    public int SendCounts { get; set; }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    [SupplyParameterFromForm]
+    public VerifyOTPEmailRequest FormData { get; set; } = default!;
+
+    bool PasswordVisible { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        FormData = new()
+        {
+            EmailAddress = EmailAddress
+        };
+
+        await UpdateSend();
+
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (editContext.Validate())
+        {
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await verifyOTP.PatchAsync("accounts/verify/registration/otp/email", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+            }
+            else
+            {
+
+                navigator.NavigateTo($"/register/email/{EmailAddress}", false);
+
+            }
+
+        }
+        else
+        {
+
+            Progress = FormProgress.Error;
+
+            FormError = "Form failed validation";
+
+            return;
+
+        }
+    }
+
+    private async Task UpdateSend()
+    {
+        Timer = 90;
+
+        for (var i = 0; i < 90; i++)
+        {
+            await Task.Delay(1000);
+
+            Timer--;
+
+            StateHasChanged();
+        }
+
+        CanResend = true;
+    }
+
+    async Task ResendTokenAction()
+    {
+
+        CanResend = false;
+
+        Progress = FormProgress.Loading;
+
+        if (SendCounts == 5)
+        {
+
+            ResendOTPEmailRequest data = new()
+                {
+                    EmailAddress = EmailAddress
+                };
+
+            await resendOTP.PatchAsync($"accounts/stop/registration/otp/email", data, CancelToken);
+
+            FormError = "Too many one-time password resends. Wait 30 minutes before trying again.";
+
+            Progress = FormProgress.Close;
+        }
+        else
+        {
+            FormError = "Please wait while one-time password is resent...";
+
+            ResendOTPEmailRequest data = new()
+                {
+                    EmailAddress = EmailAddress
+                };
+
+            var result = await resendOTP.PatchAsync($"accounts/resend/registration/otp/email", data, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                CanResend = true;
+
+            }
+            else
+            {
+                FormError = "Token was resent";
+
+                Progress = FormProgress.None;
+
+                SendCounts++;
+
+                await UpdateSend();
+            }
+        }
+
+    }
+
+}

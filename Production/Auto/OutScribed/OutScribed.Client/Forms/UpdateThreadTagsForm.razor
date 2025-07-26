@@ -1,0 +1,250 @@
+﻿@inject IApiPatchServices<UpdateTagsResponse,UpdateThreadTagsRequest> updateThread
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateThreadTagsForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Update Tale
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved thread. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <ul>
+                        <li>
+                            Tagging Threads
+                        </li>
+                        <li>
+                            Tags are used to categorize similar threads and also bring
+                            focus to trending topics.
+                        </li>
+                        <li>
+                            You can add up to five (5) tags not more than thirty-two (32)
+                            characters each.
+                        </li>
+                        <li>
+                            Seperate each tag by a comma (,) sign.
+                        </li>
+                        <li>
+                            Tags are expected to be whole words i.e. without space thus
+                            spaces are automatically replaced by underscores (_).
+                        </li>
+                    </ul>
+
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <fieldset class="alt">
+                    <InputTextArea @bind-Value=FormData.Tags id="Tags" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.Tags) ? null : "stay")">Tags</label>
+                    <ValidationMessage For="() => FormData.Tags" />
+                </fieldset>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public UpdateThreadTagsRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+        {
+                Id = Component.ThreadDraft.Id,
+                Tags = Component.ThreadDraft.TagsToString!
+            };
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await updateThread.PatchAsync("threads/update/tags", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                if (result.Value.Tags != null)
+                    Component.ThreadDraft.Tags = result.Value.Tags;
+
+                Component.Info = "Tags Updated";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}

@@ -1,0 +1,370 @@
+﻿@inject IApiPatchServices<UpdateProfileResponse,UpdateProfileRequest> patchProfile
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateProfileForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Update Profile
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved profile. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Updating Profile DEtails
+                    </li>
+                    <li>
+                        Your profile details includes your names, photo, brief bio, email address & phone number.
+                        
+                    </li>
+                    <li>
+                        Your photo should be 300px by 300px while you should restrict your bio
+                        to 1024 characters.
+                    </li>
+                    <li>
+                        Finally you can choose to remain incognito on the platform
+                        by hiding all aspects of your profile except username.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <div class="photo-preview">
+
+                    <label class="small">
+
+                        <InputFile OnChange="DisplayPhotoUpload" />
+
+                        @if (PhotoUrl != null)
+                        {
+                            <img src="@PhotoUrl" />
+                        }
+                        else
+                        {
+                            <div class="no-image small"></div>
+                        }
+
+                    </label>
+
+                </div>
+
+                <fieldset>
+                    <InputText @bind-Value=FormData.Title id="Title" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.Title) ? null : "stay")">Title</label>
+                    <ValidationMessage For="() => FormData.Title" />
+                </fieldset>
+
+                <fieldset class="alt">
+                    <InputTextArea @bind-Value=FormData.Bio id="Bio" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.Bio) ? null : "stay")">Bio</label>
+                    <ValidationMessage For="() => FormData.Bio" />
+                </fieldset>
+
+                <fieldset>
+                    <InputText @bind-Value=@FormData.EmailAddress id="EmailAddress" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.EmailAddress) ?  null : "stay")">Email Address</label>
+                </fieldset>
+
+                <fieldset>
+                    <InputText @bind-Value=@FormData.PhoneNumber id="PhoneNumber" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.PhoneNumber) ?  null : "stay")">Phone Number</label>
+                </fieldset>
+
+                <fieldset>
+                    <div class="tick-option">
+                        <InputCheckbox @bind-Value=@FormData.IsHidden id="IsHidden" />
+                        @if (FormData.IsHidden)
+                        {
+                            <label>Untick to show profile publicly</label>
+                        }
+                        else
+                        {
+                            <label>Tick to hide profile</label>
+                        }
+                    </div>
+                    <label class="stay">Status</label>
+                </fieldset>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public UpdateProfileRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    public string? PhotoUrl { get; set; }
+
+    public string? PhotoBase64 { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        FormData = new();
+
+        var starterData = await localStorage.GetItemAsync<StarterData>("starterData");
+
+        if (starterData == null)
+        {
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+        }
+
+        FormData.Title = starterData.Title;
+        FormData.Bio = starterData.Bio;
+        FormData.IsHidden = starterData.IsHidden;
+        FormData.PhoneNumber = starterData.PhoneNumber;
+        FormData.EmailAddress = starterData.EmailAddress;
+
+        PhotoUrl = starterData.DisplayPhotoToString;
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            if(PhotoBase64 != null)
+                FormData.Base64String = PhotoBase64;
+
+            var result = await patchProfile.PatchAsync("users/update/profile", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                var starterData = await localStorage.GetItemAsync<StarterData>("starterData");
+               
+                if (starterData != null)
+                {
+                    starterData.UpdateProfile(FormData.Title, FormData.Bio,
+                       FormData.EmailAddress, FormData.PhoneNumber,
+                       FormData.IsHidden, result.Value.DisplayPhoto);
+                }
+               
+                await localStorage.SetItemAsync("starterData", starterData);
+
+                Component.Info = "Profile Updated";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+    private async Task DisplayPhotoUpload(InputFileChangeEventArgs e)
+    {
+
+        var file = e.File;
+
+        long maxFileSize = 1024 * 1024 * 3;
+
+        decimal number = (decimal)file.Size / (1024 * 1024);
+
+        var contentType = file.ContentType;
+
+        var extension = Path.GetExtension(file.Name);
+
+        if ((extension != ".jpeg" || contentType.ToLower() != "image/jpeg")
+              && (extension != ".jpg" || contentType.ToLower() != "image/jpeg")
+               && (extension != ".png" || contentType.ToLower() != "image/png"))
+        {
+
+            FormError = "Only JPG or PNG files are allowed";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+        else if (number > 3)
+        {
+
+            FormError = "Uploaded files cannot exceed 3mb";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+
+        var buffer = new byte[file.Size];
+
+        await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
+
+        var imageBase64 = Convert.ToBase64String(buffer);
+
+        PhotoBase64 = imageBase64;
+
+        PhotoUrl = $"data:{contentType};base64,{imageBase64}";
+
+    }
+
+}

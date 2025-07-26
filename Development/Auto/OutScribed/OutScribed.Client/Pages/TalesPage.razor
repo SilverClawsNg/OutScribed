@@ -1,0 +1,704 @@
+﻿@page "/tales"
+
+@inject ISelectServices getSelect
+@inject NavigationManager navigator
+@inject IApiGetServices<AllTalesResponse> getTales
+@inject IApiGetServices<UserProfileResponse> getProfile
+@inject IAuthenticationServices authenticate
+@inject IApiPatchServices<CountsResponse,FollowTaleRequest> followTale
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Tales - OutScribed</PageTitle>
+
+@if(Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+
+            @foreach (var component in Components.OrderBy(c => c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.UserProfile)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UserProfileComponent Component="component"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo"
+                            OnRemoveComponent="RemoveComponent" />
+
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+
+                </div>
+
+            }
+
+        }
+
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Tales" @ref="Navigation" />
+
+<main>
+
+    @if (InputError == null)
+    {
+
+        if (HasInput)
+        {
+
+            <div class="filter-container">
+
+                <div class="filter-header alt">
+
+                    <p>
+                        @Input.CounterToString
+                    </p>
+
+                    <div class="filter-links">
+                        <a class="@(IsShowFilter ? "active filter" : "filter")" href="#" @onclick:preventDefault="true" @onclick='() => IsShowFilter = !IsShowFilter'>
+                            Filter
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="@(IsShowFilter ? "filter-contents active" : "filter-contents")">
+
+                <div class="form-container alt">
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@CategoryClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var category in Categories)
+                            {
+                                if (Category != null && category.Value == int.Parse(Category))
+                                {
+                                    <option value="@category.Value" selected="selected">@category.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@category.Value">@category.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Category) || Category == "-1" ? null : "stay")">Filter by Category</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@CountryClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var country in Countries)
+                            {
+                                if (Country != null && country.Value == int.Parse(Country))
+                                {
+                                    <option value="@country.Value" selected="selected">@country.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@country.Value">@country.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Country) || Country == "-1" ? null : "stay")">Filter by Country</label>
+
+                    </fieldset>
+
+                    <fieldset class="username">
+
+                        <InputText @bind-Value=@Username id="Username" class="form-field" />
+
+                        <label class="@(Username == null || string.IsNullOrEmpty(Username) ? null : "stay")">Filter by Username</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <InputText @bind-Value=@Keyword id="Keyword" class="form-field" />
+
+                        <label class="@(string.IsNullOrEmpty(Keyword) ? null : "stay")">Filter by Keyword</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@SortClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var sort in Sorts)
+                            {
+                                if (Sort != null && sort.Value == int.Parse(Sort))
+                                {
+                                    <option value="@sort.Value" selected="selected">@sort.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@sort.Value">@sort.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Sort) || Sort == "-1" ? null : "stay")">Order Results</label>
+
+                    </fieldset>
+
+                    <div class="button-holder">
+
+                        <button @onclick:preventDefault="true" @onclick='() => LoadInput()'>
+                            Get Tales
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            if (Input.Tales != null && Input.Tales.Count > 0)
+            {
+
+                <div class="content-container">
+
+                    @foreach (var tale in Input.Tales)
+                    {
+
+                        <article class="featured-content">
+
+                            <div class="featured-content-text">
+
+                                <p class="content-subheading">
+                                    @tale.CategoryToString <span class="divider">|</span>
+                                    @if (tale.CountryToString != null)
+                                    {
+                                        @tale.CountryToString
+                                        <span class="divider">|</span>
+                                    }
+                                    @tale.DateToString
+                                </p>
+
+                                <h1 class="content-heading">
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                        @tale.Title
+                                    </a>
+                                    <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = tale.WriterId})'>
+                                        @tale.WriterUsername
+                                    </a>
+
+                                </h1>
+
+                                <p class="content-summary">
+                                    @tale.Summary.Truncate(256)
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                        continue
+                                    </a>
+                                </p>
+
+                                <div class="content-stats">
+                                    <p> <span>@tale.ViewsToString</span> Views</p>
+                                    <p> <span>@tale.LikesToString</span> Likes</p>
+                                    <p> <span>@tale.HatesToString</span> Hates</p>
+                                    <p><span>@tale.CommentsToString </span> Comments</p>
+                                    <p><span>@tale.FollowersToString </span> Followers</p>
+                                    <p><span>@tale.ThreadsToString </span> Threads</p>
+                                </div>
+
+                                <p class="content-save">
+                                    @if (tale.IsFollowingTale)
+                                    {
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(tale, false)'>
+                                            Unfollow
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(tale, true)'>
+                                            Save For Later
+                                        </a>
+                                    }
+
+                                </p>
+
+                            </div>
+
+                            <div class="featured-content-image">
+
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{tale.TaleUrl}", false)'>
+                                    <img src="@tale.PhotoUrlToString" />
+                                </a>
+
+                            </div>
+
+                        </article>
+
+                    }
+
+                </div>
+
+                <div class="navigation-container">
+
+                    <div class="navigation-links">
+
+                        @if (Input.Previous)
+                        {
+                            <a href="#" class="previous" @onclick:preventDefault="true" @onclick='() => LoadMore(0)'></a>
+                        }
+                        else
+                        {
+                            <a href="#" class="previous disabled" @onclick:preventDefault="true"> </a>
+                        }
+                        @if (Input.Next)
+                        {
+                            <a href="#" class="next" @onclick:preventDefault="true" @onclick='() => LoadMore(1)'>  </a>
+                        }
+                        else
+                        {
+                            <a href="#" class="next disabled" @onclick:preventDefault="true"> </a>
+                        }
+
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <div class="no-content">
+
+                    <ErrorGif />
+
+                    <h3>
+                        No Result!
+                    </h3>
+
+                    @if (Input.Keyword != null)
+                    {
+                        <p>
+                            It appears no tale matches your keywords.
+                        </p>
+                        <p>
+                            Try searching again with more specific keywords. Note that we do not search common words
+                            like "is", "are", "them", etc.
+                        </p>
+
+                    }
+                    else
+                    {
+                        <p>
+                            No tale found!
+                        </p>
+                    }
+
+                </div>
+
+            }
+
+        }
+        else
+        {
+
+            <LoadingComponent Type="--- loading tales ---" />
+
+        }
+    }
+    else
+    {
+        <ErrorComponent Message=@InputError Type="tales" />
+    }
+
+
+</main>
+
+<FooterComponent />
+
+@code{
+
+    [SupplyParameterFromQuery]
+    public string? User { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Tag { get; set; }
+
+    [SupplyParameterFromQuery]
+    public Guid? WatchlistId { get; set; }
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+    public string? Info { get; set; }
+
+    bool IsShowFilter { get; set; } = false;
+
+
+    bool HasInput { get; set; } = false;
+
+    public AllTalesResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    List<DropdownList> Countries = new();
+
+    List<DropdownList> Sorts = new();
+
+    List<DropdownList> Categories = new();
+
+
+    bool IsModalOpen { get; set; } = false;
+
+
+    string? Category { get; set; } = null;
+
+    string? Country { get; set; } = null;
+
+    string? Sort { get; set; } = null;
+
+    string? Username { get; set; } = null;
+
+    private string? Keyword { get; set; } = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+        }
+
+        Countries = getSelect.Get<Countries>();
+
+        Categories = getSelect.Get<Categories>();
+
+        Sorts = getSelect.Get<SortTypes>();
+
+        if (User != null)
+            Username = User;
+
+        Components = new();
+
+        await LoadInput();
+
+    }
+
+    protected void CategoryClicked(ChangeEventArgs e)
+    {
+        Category = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void CountryClicked(ChangeEventArgs e)
+    {
+        Country = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void SortClicked(ChangeEventArgs e)
+    {
+        Sort = e.Value == null ? null : e.Value.ToString();
+    }
+
+    public async Task LoadMore(int type)
+    {
+        if (type == 0)
+            Input.Pointer--;
+        else if (type == 1)
+            Input.Pointer++;
+
+        if (Input.Pointer >= 0)
+        {
+            await LoadInput();
+        }
+
+    }
+
+    public async Task LoadInput()
+    {
+
+        await JsRuntime.InvokeVoidAsync("OnScrollToTop", 0);
+
+        IsShowFilter = false;
+
+        HasInput = false;
+
+        InputError = null;
+
+
+        var url = "tales?";
+
+        if (WatchlistId != null && WatchlistId != Guid.NewGuid())
+        {
+            url = url + $"watchlistId={WatchlistId}&";
+        }
+
+        if (!string.IsNullOrEmpty(Tag))
+        {
+            url = url + $"tag={Tag}&";
+        }
+
+        if (!string.IsNullOrEmpty(Category) && Category != "-1")
+        {
+            Enum.TryParse(Category, out Categories category);
+
+            url = url + $"category={category}&";
+        }
+
+        if (!string.IsNullOrEmpty(Country) && Country != "-1")
+        {
+            Enum.TryParse(Country, out Countries country);
+
+            url = url + $"country={country}&";
+        }
+
+        if (!string.IsNullOrEmpty(Sort) && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Username))
+        {
+            url = url + $"username={Username}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        if (Input != null && Input.Pointer > 0)
+        {
+            url = url + $"pointer={Input.Pointer}&size=5";
+        }
+        else
+        {
+            url = url + "size=6";
+        }
+
+        var result = await getTales.GetAsync(url, CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+    private async Task FollowTale(TaleSummary tale, bool option)
+    {
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/tales", false);
+        }
+
+        FollowTaleRequest formData = new()
+            {
+                TaleId = tale.Id,
+                Option = option
+            };
+
+        var result = await followTale.PatchAsync("tales/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            tale.IsFollowingTale = option;
+
+            tale.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Tale Followed");
+
+            }
+            else
+            {
+                await SetInfo("Tale Unfollowed");
+
+            }
+
+        }
+    }
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        shouldRender = false;
+
+        Components.Insert(0, component);
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        await authenticate.CheckJwtTokenAsync();
+
+        if (component.ComponentType == ComponentTypes.UserProfile)
+        {
+            var result = await getProfile.GetAsync($"users/profile/{component.Id}", CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+
+            }
+            else
+            {
+                component.Profile = result.Value;
+            }
+        }
+
+        component.HasContents = true;
+
+        component.ComponentState = ComponentStates.Enter;
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+            }
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if (info != null)
+            await SetInfo(info);
+
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnModalClose");
+
+        // StateHasChanged();
+
+    }
+}

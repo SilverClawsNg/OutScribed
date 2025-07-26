@@ -1,0 +1,254 @@
+﻿@inject IApiPatchServices<CountsResponse,FlagTaleCommentRequest> flagComment
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="FlagTaleForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Flag Comment
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Reporting Comments
+                    </li>
+                    <li>
+                        Comments can be reported for violations of the platform's guidelines.
+                    </li>
+                    <li>
+                        To report a comment, simply tick the reason that best fits the violation.
+                    </li>
+                    <li>
+                        You are only allowed to report a specific comment once.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <InputRadioGroup @bind-Value="FormData.FlagType">
+
+                    <fieldset class="alt">
+
+                        <div class="tick-option vertical">
+
+                            <p>
+                                <InputRadio Value="@(FlagTypes.Sexual)" Id="@(FlagTypes.Sexual)" />
+                                <label for="@FlagTypes.Sexual"> Explicit Sexual Contents</label>
+                            </p>
+
+                            <p>
+                                <InputRadio Value="@(FlagTypes.Religous)" Id="@(FlagTypes.Religous)" />
+                                <label for="@FlagTypes.Religous">Extreme Religous Bigotry</label>
+                            </p>
+
+                            <p>
+                                <InputRadio Value="@(FlagTypes.Violent)" Id="@(FlagTypes.Violent)" />
+                                <label for="@FlagTypes.Violent">Extreme Violent Contents </label>
+                            </p>
+
+
+                            <p>
+                                <InputRadio Value="@(FlagTypes.Other)" Id="@(FlagTypes.Other)" />
+                                <label for="@FlagTypes.Other">Uncharacterized Reasons</label>
+                            </p>
+
+                        </div>
+
+                        <label class="stay">Reason</label>
+
+                    </fieldset>
+
+                </InputRadioGroup>
+
+                <ValidationMessage For="() => FormData.FlagType" />
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public FlagTaleCommentRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+            {
+                TaleId = Component.TaleComment.TaleId,
+                CommentId = Component.TaleComment.Id
+            };
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await flagComment.PatchAsync("tales/comment/flag", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                Component.TaleComment.HasFlagged = true;
+
+                Component.TaleComment.Flags = result.Value.Counts;
+
+                Component.Info = "Comment Reported";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}

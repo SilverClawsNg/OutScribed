@@ -1,0 +1,938 @@
+﻿@page "/tale/{Id}"
+
+@inject IAuthenticationServices authenticate
+@inject IApiGetServices<TaleResponse> getTale
+@inject IApiPatchServices<CountsResponse,RateTaleRequest> rateTale
+@inject IApiPatchServices<CountsResponse,FollowTaleRequest> followTale
+@inject IApiPatchServices<CountsResponse,FollowUserRequest> followWriter
+
+@inject IApiGetServices<UserProfileResponse> getProfile
+@inject IApiGetServices<TaleCommentsResponse> getComments
+@inject IApiGetServices<TaleResponsesResponse> getResponses
+@inject IApiGetServices<TaleThreadsResponse> getThreads
+
+@inject NavigationManager navigator
+
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Tale - OutScribed</PageTitle>
+
+@if(Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+
+            @foreach (var component in Components.OrderBy(c=>c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.TaleComments)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <TaleCommentsComponent Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnCloseModal="CloseModal"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo" />
+
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.TaleResponses)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <TaleResponsesComponent Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnCloseModal="CloseModal"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo" />
+
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.TaleThreads)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <TaleThreadsComponent Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnCloseModal="CloseModal"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal"
+                            OnSetInfo="SetInfo" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.CreateTaleComment)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <CreateTaleCommentForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+
+                            OnExpandModal="ExpandModal" />
+                        }
+
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.CreateTaleResponse)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <CreateTaleResponseForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.FlagTale)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <FlagTaleForm Component="component" 
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.FlagTaleComment)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <FlagTaleCommentForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.CreateThread)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <CreateThreadForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UserProfile)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UserProfileComponent Component="component"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo"
+                            OnRemoveComponent="RemoveComponent" />
+
+                        }
+
+                    }
+
+                </div>
+
+            }
+
+        }
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.None" @ref="Navigation" />
+
+<main>
+
+    @if (InputError == null)
+    {
+
+        if (HasInput)
+        {
+
+            <div class="item-container">
+
+                <div class="item-header">
+
+                    <p class="item-subheading">
+                        @Input.CategoryToString <span class="divider">|</span>
+                        @if (Input.CountryToString != null)
+                        {
+                            @Input.CountryToString
+                            <span class="divider">|</span>
+                        }
+                        @Input.DateToString
+                    </p>
+
+                    <h1 class="item-heading">
+                        @Input.Title
+                        <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.WriterId})'>
+                            @Input.WriterUsername
+                        </a>
+                    </h1>
+
+                    <h3 class="item-summary">
+                        @Input.Summary
+                    </h3>
+
+                </div>
+
+                <div class="item-image">
+                    <img src="@Input.PhotoUrlToString" />
+                </div>
+
+                <div class="item-details">
+
+                    <div class="richtext">
+                        @(((MarkupString)Input.DetailsDecoded).Sanitize())
+                    </div>
+
+                </div>
+
+                @if (Input.Tags != null && Input.Tags.Count > 0)
+                {
+                    <div class="item-tags">
+                        <h4>
+                            Tagged In:
+                        </h4>
+                        <p>
+                            @foreach (var tag in Input.Tags)
+                            {
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tales?tag={tag}")'>
+                                    #@tag
+                                </a>
+                            }
+                        </p>
+
+                    </div>
+                }
+
+                <div class="item-footer">
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+                            <h5>
+                                The Writer
+                            </h5>
+                        </div>
+
+                        <div class="item-footer-section-contents">
+
+                            <p class="dual-link">
+                                @if (Input.IsFollowingWriter)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowWriter(false)'>
+                                        Unfollow - @Input.WriterFollowersToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowWriter(true)'>
+                                        Follow - @Input.WriterFollowersToString
+                                    </a>
+                                }
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.WriterId})'>
+                                    Profile - @Input.WriterProfileViewsToString
+                                </a>
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+
+                            <h5>
+                                Rating
+                            </h5>
+
+                        </div>
+
+                        <div class="item-footer-section-contents">
+
+                            <p class="dual-link">
+
+                                @if (Input.MyRatingsToString != null)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Input.MyRatingsToString)'>
+                                        Love It - @Input.LikesToString
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Input.MyRatingsToString)'>
+                                        Hate It - @Input.HatesToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="left" href="#" @onclick:preventDefault="true" @onclick='() => RateTale(RateTypes.Like)'>
+                                        Love It - @Input.LikesToString
+                                    </a>
+                                    <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => RateTale(RateTypes.Hate)'>
+                                        Hate It - @Input.HatesToString
+                                    </a>
+                                }
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+                            <h5>
+                                Commenting
+                            </h5>
+                        </div>
+
+                        <div class="item-footer-section-contents">
+
+                            <p class="dual-link">
+
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateTaleComment, Id = Input.Id})'>
+                                    Comment - @Input.CommentsCountToString
+                                </a>
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateThread, Tale = Input})'>
+                                    Thread - @Input.ThreadsToString
+                                </a>
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+                            <h5>
+                                The Tale
+                            </h5>
+                        </div>
+
+                        <div class="item-footer-section-contents">
+
+                            <p class="dual-link">
+                                @if (Input.IsFollowingTale)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(false)'>
+                                        Unfollow - @Input.FollowersToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(true)'>
+                                        Follow - @Input.FollowersToString
+                                    </a>
+                                }
+                                @if (Input.HasFlagged)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => SetInfo("You have already flagged this tale")'>
+                                        Flags - @Input.FlagsToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.FlagTale})'>
+                                        Flags - @Input.FlagsToString
+                                    </a>
+                                }
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                </div>
+
+                <div class="item-options">
+
+                    <div class="item-options-others">
+
+                        <a class="icon comments" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.TaleComments, Id = Input.Id})'>
+                            Comments
+                        </a>
+                        <span class="divider">|</span>
+                        <a class="icon threads" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.TaleThreads, Id = Input.Id})'>
+                            Threads
+                        </a>
+
+                    </div>
+
+                    <div class="item-options-socials">
+
+                        <a href="#" class="facebook"></a>
+                        <a href="#" class="twitter"></a>
+                        <a href="#" class="linkedin"></a>
+                        <a href="#" class="whatsapp"></a>
+
+                        <p>
+                            @Input.SharesToString
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        }
+        else
+        {
+            <LoadingComponent Type="--- loading tale ---" />
+        }
+    }
+    else
+    {
+        <ErrorComponent Message=@InputError Type="tale" />
+    }
+
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; } = default!;
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+
+    public string? Info { get; set; }
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+
+    bool IsModalOpen { get; set; } = false;
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    bool HasInput { get; set; } = false;
+
+    public TaleResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    private async Task FollowTale(bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        FollowTaleRequest formData = new()
+            {
+                TaleId = Input.Id,
+                Option = option
+            };
+
+        var result = await followTale.PatchAsync("tales/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.IsFollowingTale = option;
+
+            Input.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Tale Followed");
+
+            }
+            else
+            {
+                await SetInfo("Tale Unfollowed");
+
+            }
+
+        }
+    }
+
+    private async Task RateTale(RateTypes rate)
+    {
+
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        RateTaleRequest formData = new()
+            {
+                TaleId = Input.Id,
+                RateType = rate
+            };
+
+        var result = await rateTale.PatchAsync("tales/rate", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.MyRatings = rate;
+
+            if (rate == RateTypes.Like)
+            {
+                Input.Likes = result.Value.Counts;
+
+                await SetInfo("Tale Liked");
+
+            }
+            else
+            {
+                Input.Hates = result.Value.Counts;
+
+                await SetInfo("Tale Disliked");
+
+            }
+
+        }
+    }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(2000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+
+    private async Task FollowWriter(bool option)
+    {
+
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        FollowUserRequest formData = new()
+            {
+                UserId = Input.WriterId,
+                Option = option
+            };
+
+        var result = await followWriter.PatchAsync("accounts/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.IsFollowingWriter = option;
+
+            Input.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Writer Followed");
+
+            }
+            else
+            {
+                await SetInfo("Writer Unfollowed");
+
+            }
+
+        }
+    }
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        if (component.Reload == false)
+        {
+
+            shouldRender = false;
+
+            Components.Insert(0, component);
+
+        }
+
+        if (component.Append == false)
+        {
+            component.HasContents = false;
+        }
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        await authenticate.CheckJwtTokenAsync();
+
+        if (component.ComponentType == ComponentTypes.UserProfile)
+        {
+            var result = await getProfile.GetAsync($"users/profile/{component.Id}", CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+
+            }
+            else
+            {
+                component.Profile = result.Value;
+            }
+        }
+        else if (component.ComponentType == ComponentTypes.TaleComments)
+        {
+
+            var url = component.Url == null ? $"tales/comments/{component.Id}" : component.Url;
+
+            var result = await getComments.GetAsync(url, CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+            }
+            else
+            {
+                if(component.Append == true)
+                {
+                    if (component.TaleComments != null && component.TaleComments.Comments != null && result.Value.Comments != null)
+                    {
+                        component.TaleComments.Comments.AddRange(result.Value.Comments);
+                        component.TaleComments.More = result.Value.More;
+                        component.TaleComments.Pointer = result.Value.Pointer;
+                    }
+                }
+                else
+                {
+
+                    component.TaleComments = result.Value;
+
+                }
+
+            }
+
+        }
+        else if (component.ComponentType == ComponentTypes.TaleResponses)
+        {
+
+            var url = component.Url == null ? $"tales/responses/{component.TaleComment!.Id}" : component.Url;
+
+            var result = await getResponses.GetAsync(url, CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+            }
+            else
+            {
+
+                //New responses
+                if (component.Reload == false && component.Append == false)
+                {
+
+                    if (component.TaleFocusComment != null)
+                    {
+                        if (component.TaleRecursiveComments == null)
+                            component.TaleRecursiveComments = new();
+
+                        component.TaleRecursiveComments.Insert(0, component.TaleFocusComment);
+                    }
+
+                    component.TaleFocusComment = component.TaleComment;
+
+                    component.TaleResponses = result.Value;
+
+                }
+                //More responses
+                else if (component.Append == true)
+                {
+                    if (component.TaleResponses != null && component.TaleResponses.Responses != null && result.Value.Responses != null)
+                    {
+                        component.TaleResponses.Responses.AddRange(result.Value.Responses);
+                        component.TaleResponses.More = result.Value.More;
+                    }
+                }
+                //Filter responses
+                else
+                {
+                    component.TaleResponses = result.Value;
+                }
+
+            }
+
+        }
+        else if (component.ComponentType == ComponentTypes.TaleThreads)
+        {
+
+            var url = component.Url == null ? $"threads/tale/{component.Id}" : component.Url;
+
+            var result = await getThreads.GetAsync(url, CancelToken);
+
+            if (result.IsFailure)
+            {
+                await SetInfo(result.Error ?? "Unknown server error");
+            }
+            else
+            {
+                if(component.Append == true)
+                {
+                    if (component.TaleThreads.Threads != null && result.Value.Threads != null)
+                    {
+                        component.TaleThreads.Threads.AddRange(result.Value.Threads);
+
+                        component.TaleThreads.Previous = result.Value.Previous;
+
+                        component.TaleThreads.Next = result.Value.Next;
+                    }
+                }
+                else
+                {
+
+                    component.TaleThreads = result.Value;
+
+                }
+
+            }
+
+        }
+
+        if (component.Append == false)
+        {
+            component.HasContents = true;
+        }
+
+        if (component.Reload == false)
+        {
+            component.ComponentState = ComponentStates.Enter;
+        }
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+
+                await Navigation.Refresh();
+            }
+            else if (component.ComponentType == ComponentTypes.CreateTaleComment)
+            {
+
+                if (component.TaleComment != null)
+                {
+
+                    var commentsComponent = Components.Where(c => c.ComponentType == ComponentTypes.TaleComments).FirstOrDefault();
+
+                    if (commentsComponent != null && commentsComponent.TaleComments != null
+                    && commentsComponent.TaleComments.Comments != null)
+                    {
+                        commentsComponent.TaleComments.Comments.Insert(0, component.TaleComment);
+                    }
+
+                    Input.CommentsCount++;
+                }
+
+            }
+            else if (component.ComponentType == ComponentTypes.CreateTaleResponse)
+            {
+
+                if (component.TaleComment != null)
+                {
+
+                    var responsesComponent = Components.Where(c => c.ComponentType == ComponentTypes.TaleResponses).OrderByDescending(c => c.Date).FirstOrDefault();
+
+                    if (responsesComponent != null && responsesComponent.TaleResponses != null)
+                    {
+
+                        if (responsesComponent.TaleResponses.Responses == null)
+                            responsesComponent.TaleResponses.Responses = new();
+
+                        responsesComponent.TaleResponses.Responses.Insert(0, component.TaleComment);
+
+                        responsesComponent.TaleResponses.Counter++;
+                    }
+
+                    component.TaleFocusComment.ResponsesCount++;
+                }
+
+            }
+          
+
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if (info != null)
+            await SetInfo(info);
+
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnModalClose");
+
+        // StateHasChanged();
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+        }
+
+        Components = new();
+
+        var result = await getTale.GetAsync($"tales/{Id}", CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+}

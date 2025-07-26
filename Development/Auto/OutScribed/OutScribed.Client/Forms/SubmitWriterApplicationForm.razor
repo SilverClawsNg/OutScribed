@@ -1,0 +1,341 @@
+﻿@inject IApiPatchServices<bool,WriterApplicationRequest> submitApplication
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="WriterApplicationForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Writer's Application
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+             else if (Progress == FormProgress.Success)
+            {
+                <div class="form-progress">
+
+                    <SuccessGif />
+
+                    <p class="progress-message">
+                        Your application was successfully submitted. You would be notified of outcome soon.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Submitting Writer's Application
+                    </li>
+                    <li>
+                        You are about to apply to write for OutScribed.
+                    </li>
+                    <li>
+                        Before proceeding, ensure that you have a ready Adobe PDF document
+                        containing specified details about yourself, writing career, 
+                        and a short story in the form as popularized by OutScribed.
+                    </li>
+                    <li>
+                        You would also be required to add your country and address details
+                        which can include your state, city, and other locational information.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <fieldset class="alt">
+                    <InputTextArea @bind-Value=FormData.Address id="Address" class="form-field" />
+                    <label class="@(FormData.Address == null || string.IsNullOrEmpty(FormData.Address) ? null : "stay")">Address</label>
+                    <ValidationMessage For="() => FormData.Address" />
+                </fieldset>
+
+                <fieldset>
+
+                    <select class="form-field" @onchange="@CountryClicked">
+
+                        <option></option>
+
+                        @foreach (var country in Countries)
+                        {
+                            <option value="@country.Value">@country.Text</option>
+                        }
+
+                    </select>
+
+                    <label class="@(FormData.Country == null ? null : "stay")">Country</label>
+
+                </fieldset>
+
+                <fieldset>
+
+                    <div class="upload-document">
+
+                        <label>
+
+                            <InputFile OnChange="OnDocumentUpload" />
+
+                            <span>
+                                @Filename
+                            </span>
+
+                        </label>
+
+                    </div>
+
+                </fieldset>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public WriterApplicationRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private string Filename { get; set; } = "Upload PDF file less than 3mb";
+
+    private string DocumentBase64 { get; set; } = default!;
+
+
+    List<DropdownList> Countries = new();
+
+    private bool ShowHelp = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        Countries = getSelect.Get<Countries>();
+
+        FormData = new();
+    }
+
+    protected void CountryClicked(ChangeEventArgs e)
+    {
+
+        FormData.Country = e.Value == null ? null : (Countries)Enum.Parse(typeof(Countries), e.Value.ToString()!);
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        Progress = FormProgress.Loading;
+
+        FormError = string.Empty;
+
+        if (DocumentBase64 == null)
+        {
+            FormError = "Photo cannot be null";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+
+        FormData.Base64String = DocumentBase64;
+
+        if (editContext.Validate())
+        {
+
+            var result = await submitApplication.PatchAsync("users/submit/application", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                Component.Info = "Application Submitted";
+
+                Progress = FormProgress.Success;
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+    private async Task OnDocumentUpload(InputFileChangeEventArgs e)
+    {
+
+        var file = e.File;
+
+        long maxFileSize = 1024 * 1024 * 3;
+
+        decimal number = (decimal)file.Size / (1024 * 1024);
+
+        var contentType = file.ContentType;
+
+        var extension = Path.GetExtension(file.Name);
+
+        if (extension.ToLower() != ".pdf" || contentType.ToLower() != "application/pdf")
+        {
+            FormError = "Only PDF files are allowed.";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+        else if (number > 3)
+        {
+            FormError = "Uploaded files cannot exceed 3mb";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+
+        var buffer = new byte[file.Size];
+
+        await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
+
+        DocumentBase64 = Convert.ToBase64String(buffer);
+
+        Filename = e.File.Name;
+
+        FormError = string.Empty;
+
+    }
+
+}

@@ -1,0 +1,442 @@
+﻿@inject IApiPatchServices<CountsResponse,LinkTaleRequest> linkTale
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="LinkTaleForm">
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Link Tale
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+
+                <ul>
+                    <li>
+                        Linking Tales To Watchlists
+                    </li>
+                    <li>
+                        Watchlists are stories currently been monitored and followed by
+                        users on the platform.
+
+                    </li>
+                    <li>
+                        By linking your tale to a watchlist, you increase its visibility
+                        as all users currently following the watchlist would receive automatic alerts to your tale.
+                    </li>
+                    <li>
+                        Your latest ten (10) tales has been automatically retrieved but you can
+                        specify a keyword to locate a specific tale.
+                    </li>
+                    <li>
+                        Simply tick the appropriate tale to link to the watchlist.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="filter-container">
+
+                <div class="filter-header alt">
+
+                    <p>
+                        @Component.TaleLinks.CounterToString
+                    </p>
+
+                    <div class="filter-links">
+                        <a href="#" class="filter" @onclick:preventDefault="true" @onclick='() => IsShowFilter = !IsShowFilter'>
+                            Filter
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="@(IsShowFilter ? "filter-contents active" : "filter-contents")">
+
+                <div class="form-container alt">
+
+                    <fieldset>
+
+                        <InputText @bind-Value=@Keyword id="Keyword" class="form-field" />
+
+                        <label class="@(string.IsNullOrEmpty(Keyword) ? null : "stay")">Filter by Keyword</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@SortClicked">
+
+                            <option value="-1"></option>
+
+                            <option value="@SortTypes.Most_Recent" selected="@(Sort == SortTypes.Most_Recent.ToString() ? "selected" : null)">Most Recent</option>
+
+                            <option value="@SortTypes.Least_Recent" selected="@(Sort == SortTypes.Least_Recent.ToString() ? "selected" : null)">Least Recent</option>
+
+                        </select>
+
+                        <label class="@(string.IsNullOrEmpty(Sort) || Sort == "-1" ? null : "stay")">Order Results</label>
+
+                    </fieldset>
+
+                    <div class="button-holder">
+
+                        <button @onclick:preventDefault="true" @onclick='() => Filter()'>
+                            Get Tales
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            @if (Component.ErrorMessage == null)
+            {
+
+                <div class="form-container">
+
+                    <InputRadioGroup @bind-Value="FormData.TaleId">
+
+                        <fieldset class="alt">
+
+                            <div class="tick-option vertical">
+
+                                @if (Component.TaleLinks.Tales != null && Component.TaleLinks.Tales.Count > 0)
+                                {
+
+                                    @foreach (var tale in Component.TaleLinks.Tales)
+                                    {
+                                        <p>
+                                            <InputRadio Value="@tale.Id" Id="@(tale.Id)" />
+                                            <label for="@tale.Id"> @tale.Title</label>
+                                        </p>
+
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="no-content">
+
+                                        <ErrorGif />
+
+                                        <h3>
+                                            No Result!
+                                        </h3>
+
+                                        @if (Component.TaleLinks.Keyword != null)
+                                        {
+                                            <p>
+                                                It appears no tale matches your keywords.
+                                            </p>
+                                            <p>
+                                                Try searching again with more specific keywords. Note that we do not search common words
+                                                like "is", "are", "them", etc.
+                                            </p>
+
+                                        }
+                                        else
+                                        {
+                                            <p>
+                                                No tale found!
+                                            </p>
+
+                                        }
+
+                                    </div>
+
+                                }
+
+                            </div>
+
+                            <label class="stay">Tale</label>
+
+                        </fieldset>
+
+                    </InputRadioGroup>
+
+                    <ValidationMessage For="() => FormData.TaleId" />
+
+                </div>
+
+                <div class="navigation-container">
+
+                    <div class="navigation-links">
+
+                        @if (Component.TaleLinks.More)
+                        {
+                            <a href="#" class="more" @onclick:preventDefault="true" @onclick='() => LoadMore()'></a>
+                        }
+                        else
+                        {
+                            <a href="#" class="more disabled" @onclick:preventDefault="true"> </a>
+                        }
+                    </div>
+
+                </div>
+
+            }
+            else
+            {
+                <ErrorComponent Message=@Component.ErrorMessage
+                                Type="link tales form" />
+            }
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public LinkTaleRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    bool IsShowFilter { get; set; } = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+            {
+                WatchListId = Component.Id
+            };
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await linkTale.PatchAsync("watchlists/link", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                Component.Counts = result.Value.Counts;
+
+                Component.Info = "Tale Linked";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+    string? Sort { get; set; } = null;
+
+    private string? Keyword { get; set; } = null;
+
+    protected void SortClicked(ChangeEventArgs e)
+    {
+        Sort = e.Value == null ? null : e.Value.ToString();
+    }
+
+    public async Task LoadMore()
+    {
+
+        var url = $"tales/links?";
+
+        if (Sort != null && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        Component.TaleLinks.Pointer++;
+
+        url = url + $"pointer={Component.TaleLinks.Pointer}&size=5";
+
+        Component.Url = url;
+
+        Component.Reload = true;
+
+        Component.Append = true;
+
+        await OnAddComponent.InvokeAsync(Component);
+
+        IsShowFilter = false;
+    }
+
+    public async Task Filter()
+    {
+
+        var url = $"tales/links?";
+
+        if (Sort != null && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        url = url + "pointer=0&size=5";
+
+        Component.Url = url;
+
+        Component.Reload = true;
+
+        Component.Append = false;
+
+        await OnAddComponent.InvokeAsync(Component);
+
+        IsShowFilter = false;
+
+    }
+
+}

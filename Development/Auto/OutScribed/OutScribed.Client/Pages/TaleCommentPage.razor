@@ -1,0 +1,627 @@
+﻿@page "/tale/comment/{Id:guid}"
+
+@inject ISelectServices getSelect
+@inject NavigationManager navigator
+@inject IApiGetServices<TaleCommentResponse> getComment
+@inject IApiGetServices<UserProfileResponse> getProfile
+@inject IAuthenticationServices authenticate
+@inject IApiPatchServices<CountsResponse,FollowTaleRequest> followTale
+@inject IApiPatchServices<CountsResponse,RateTaleCommentRequest> rateComment
+
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Comment - OutScribed</PageTitle>
+
+@if(Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+
+            @foreach (var component in Components.OrderBy(c=>c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.CreateTaleResponse)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <CreateTaleResponseForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent" />
+                        }
+                        else
+                        {
+                            <LoadingComponent Type="--- loading response form ---" />
+
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.FlagTaleComment)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <FlagTaleCommentForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"/>
+                        }
+                        else
+                        {
+                            <LoadingComponent Type="--- loading report form ---" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UserProfile)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UserProfileComponent Component="component"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo"
+                            OnRemoveComponent="RemoveComponent" />
+
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                </div>
+
+            }
+
+        }
+
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.None" @ref="Navigation" />
+
+<main>
+
+    <div class="comment-page">
+
+        @if (InputError == null)
+        {
+
+            if (HasInput)
+            {
+
+                if (Input.Tale != null)
+                {
+                    <div class="brief-content-container">
+
+                        <article class="brief-content">
+
+                            <p class="content-subheading">
+                                @Input.Tale.CategoryToString<span class="divider">|</span>
+                                @if (Input.Tale.CountryToString != null)
+                                {
+                                    @Input.Tale.CountryToString
+                                    <span class="divider">|</span>
+                                }
+                                @Input.Tale.DateToString
+                            </p>
+
+                            <h1 class="content-heading">
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{Input.Tale.TaleUrl}", false)'>
+                                    @Input.Tale.Title
+                                </a>
+                                <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.Tale.WriterId})'>
+                                    @Input.Tale.WriterUsername
+                                </a>
+
+                            </h1>
+                            <p class="content-text">
+                                @Input.Tale.Summary
+                            </p>
+
+                            <p class="content-save">
+                                @if (Input.Tale.IsFollowingTale)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(Input.Tale, false)'>
+                                        Unfollow
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowTale(Input.Tale, true)'>
+                                        Save For Later
+                                    </a>
+                                }
+
+                            </p>
+
+                        </article>
+
+                    </div>
+                }
+
+                @if (Input.RecursiveComments != null && Input.RecursiveComments.Count > 0)
+                {
+                    <div class="comments-container">
+
+                        @foreach (var comment in Input.RecursiveComments)
+                        {
+                            <div class="comment">
+                                <div class="comment-image alt">
+                                    <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = comment.CommentatorId})'>
+                                        <img src="@comment.CommentatorDisplayPhotoToString" />
+                                    </a>
+
+                                    <div class="vertical-pointer-holder">
+                                        <span></span>
+                                    </div>
+                                </div>
+                                <div class="comment-content">
+                                    <div class="user-details">
+                                        <h1>
+                                            <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = comment.CommentatorId})'>
+                                                @comment.CommentatorUsername
+                                            </a>
+
+                                        </h1>
+                                        <p>
+                                            @comment.DateToString
+                                        </p>
+                                    </div>
+
+                                    <p class="comment-details">
+                                        <div class="richtext">
+                                            @(((MarkupString)comment.DetailsDecoded).Sanitize())
+                                        </div>
+                                    </p>
+
+                                    <div class="comment-links">
+                                        <div class="left-comment-links">
+                                            @if (comment.MyRatingsToString != null)
+                                            {
+                                                <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(comment.MyRatingsToString)'>
+                                                    <span>@comment.Likes</span>
+                                                </a>
+                                                <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(comment.MyRatingsToString)'>
+                                                    <span>@comment.Hates</span>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => Rate(comment, RateTypes.Like)'>
+                                                    <span>@comment.Likes</span>
+                                                </a>
+                                                <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => Rate(comment, RateTypes.Hate)'>
+                                                    <span>@comment.Hates</span>
+                                                </a>
+                                            }
+
+                                        </div>
+                                        <div class="right-comment-links">
+                                            <a class="icon reply" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateTaleResponse, TaleComment = comment})'>
+
+                                            </a>
+                                            @if (comment.HasFlagged)
+                                            {
+                                                <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo("You have already flagged this comment")'>
+                                                </a>
+
+                                            }
+                                            else
+                                            {
+                                                <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.FlagTaleComment, TaleComment = comment})'>
+                                                </a>
+                                            }
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+                @if (Input.FocusComment != null)
+                {
+                    <div class="comments-container">
+
+                        <div class="comment">
+                            <div class="comment-image">
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.FocusComment.CommentatorId})'>
+                                    <img src="@Input.FocusComment.CommentatorDisplayPhotoToString" />
+                                </a>
+
+                            </div>
+                            <div class="comment-content">
+                                <div class="user-details">
+                                    <h1>
+                                        <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.FocusComment.CommentatorId})'>
+                                            @Input.FocusComment.CommentatorUsername
+                                        </a>
+
+                                    </h1>
+                                    <p>
+                                        @Input.FocusComment.DateToString
+                                    </p>
+                                </div>
+
+                                <p class="comment-details">
+                                    <div class="richtext">
+                                        @(((MarkupString)Input.FocusComment.DetailsDecoded).Sanitize())
+                                    </div>
+                                </p>
+
+                                <div class="comment-links">
+                                    <div class="left-comment-links">
+                                        @if (Input.FocusComment.MyRatingsToString != null)
+                                        {
+                                            <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Input.FocusComment.MyRatingsToString)'>
+                                                <span>@Input.FocusComment.Likes</span>
+                                            </a>
+                                            <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Input.FocusComment.MyRatingsToString)'>
+                                                <span>@Input.FocusComment.Hates</span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => Rate(Input.FocusComment, RateTypes.Like)'>
+                                                <span>@Input.FocusComment.Likes</span>
+                                            </a>
+                                            <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => Rate(Input.FocusComment, RateTypes.Hate)'>
+                                                <span>@Input.FocusComment.Hates</span>
+                                            </a>
+                                        }
+
+                                    </div>
+                                    <div class="right-comment-links">
+                                        <a class="icon reply" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateTaleResponse, TaleFocusComment = Input.FocusComment})'>
+
+                                        </a>
+                                        <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => Rate(Input.FocusComment, RateTypes.Hate)'>
+                                        </a>
+
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                }
+
+            }
+            else
+            {
+
+                <LoadingComponent Type="--- loading comment ---" />
+
+            }
+        }
+        else
+        {
+            <ErrorComponent Message=@InputError Type="comment" />
+        }
+
+
+    </div>
+
+</main>
+
+<FooterComponent />
+
+@code{
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+    [Parameter]
+    public Guid Id { get; set; } = default!;
+
+    bool IsModalOpen { get; set; } = false;
+
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+
+    bool HasInput { get; set; } = false;
+
+    public TaleCommentResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+        }
+
+        Components = new();
+
+        var result = await getComment.GetAsync($"tales/comment/{Id}", CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    public string? Info { get; set; }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+
+    private async Task Rate(TaleCommentSummary comment, RateTypes rate)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+        }
+
+        RateTaleCommentRequest formData = new()
+            {
+                TaleId = comment.TaleId,
+                CommentId = comment.Id,
+                RateType = rate
+            };
+
+        var result = await rateComment.PatchAsync("tales/rate/comment", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            comment.MyRatings = rate;
+
+            if (rate == RateTypes.Like)
+            {
+                comment.Likes = result.Value.Counts;
+
+                await SetInfo("Comment Liked");
+
+            }
+            else
+            {
+                comment.Hates = result.Value.Counts;
+
+                await SetInfo("Comment Disliked");
+
+            }
+
+        }
+    }
+
+    private async Task FollowTale(TaleHeaderSummary tale, bool option)
+    {
+
+        FollowTaleRequest formData = new()
+            {
+                TaleId = tale.Id,
+                Option = option
+            };
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        var result = await followTale.PatchAsync("tales/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            if (option)
+            {
+                await SetInfo("Tale Followed");
+
+                Input.Tale!.IsFollowingTale = true;
+
+            }
+            else
+            {
+                await SetInfo("Tale Unfollowed");
+
+                Input.Tale!.IsFollowingTale = false;
+
+            }
+
+        }
+    }
+
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        shouldRender = false;
+
+        Components.Insert(0, component);
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        await authenticate.CheckJwtTokenAsync();
+
+        if (component.ComponentType == ComponentTypes.UserProfile)
+        {
+            var result = await getProfile.GetAsync($"users/profile/{component.Id}", CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+
+            }
+            else
+            {
+                component.Profile = result.Value;
+            }
+        }
+
+        component.HasContents = true;
+
+        component.ComponentState = ComponentStates.Enter;
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+            }
+
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if (info != null)
+            await SetInfo(info);
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnScrollToTop", ScrollPosition);
+
+        // StateHasChanged();
+
+    }
+}

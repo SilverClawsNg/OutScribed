@@ -1,0 +1,36 @@
+﻿namespace OutScribed.SharedKernel.Enums
+{
+    public enum NotificationType
+    {
+        Account_Created,
+        Logged_In,
+        Changed_Password,
+        Reset_Password,
+        Updated_Profile,
+        Updated_Contact,
+        Submitted_Writer,
+        Followed_Content,
+        Unfollowed_Content,
+        Created_Tale,
+        Updated_Tale,
+        Submitted_Tale,
+        Reacted_Content,
+        Flagged_Content,
+        Shared_Content,
+        Created_Insight,
+        Updated_Insight,
+        Published_Insight,
+        Added_Addendum,
+        Created_Watchlist,
+        Updated_Watchlist,
+        Commented_Content,
+        Responded_Comment,
+        Role_Updated,
+        Writer_Updated,
+        Tale_Status_Updated,
+        Tale_Published,
+        New_Following,
+        New_Comment,
+        New_Resposne
+    }
+}

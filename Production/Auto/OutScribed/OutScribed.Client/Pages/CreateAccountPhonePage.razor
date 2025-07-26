@@ -1,0 +1,203 @@
+﻿@page "/register/phone/{PhoneNumber}"
+
+@inject IApiPostServices<bool,CreateAccountPhoneRequest> createAccount
+@inject NavigationManager navigator
+
+<PageTitle>Register - OutScribed</PageTitle>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Register" />
+
+<main>
+
+    <EditForm Model=@FormData OnValidSubmit=@FormAction FormName="RegisterForm">
+
+        <div class="form-contents">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+              <div class="form-header">
+                <h1 class="content-heading">
+                    Registration /3
+                </h1>
+                <h2 class="content-summary">
+                    Complete registration
+                    <a class="show-help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'></a>
+                </h2>
+            </div>
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Completing Account Creation
+                    </li>
+                    <li>
+                        Congrats. Your account is almost ready. To complete the process,
+                        add a username and a password.
+                    </li>
+                    <li>
+                        Usernames are unique identifiers that differentiates you from other
+                        users on the platform. You would also use it to sign  into your account.
+                    </li>
+                    <li>
+                        If your selected username is already in use, you would be prompted to
+                        enter another one.
+                    </li>
+                    <li>
+                        While our only constraint for strong passwords is that it must be at least
+                        8 characters, you are advised to use a mix of lower and uppercase characters
+                        as well as special characters.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container alt">
+
+                <fieldset>
+
+                    <InputText @bind-Value=@FormData.Username id="Username" class="form-field" />
+
+                    <label class="@(string.IsNullOrEmpty(FormData.Username) ?  null : "stay")">Username</label>
+
+                </fieldset>
+
+                 <fieldset class="password-box">
+
+                    <a class="show-password" href="#" @onclick:preventDefault="true" @onclick="() => PasswordVisible = !PasswordVisible" id="show-password"> </a>
+
+                    <InputText @bind-Value=@FormData.Password id="Password" type="@(PasswordVisible == true ? "text" : "password")" class="form-field" />
+
+                    <label class="@(string.IsNullOrEmpty(FormData.Password) ?  null : "stay")">Password</label>
+
+                </fieldset>
+
+            </div>
+
+            <div class="form-footer">
+
+                <div class="form-footer-links">
+
+                    <button type="submit">
+                        Submit
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
+    </EditForm>
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public string PhoneNumber { get; set; } = null!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    [SupplyParameterFromForm]
+    public CreateAccountPhoneRequest FormData { get; set; } = default!;
+
+    bool PasswordVisible { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+        {
+            PhoneNumber = PhoneNumber
+        };
+
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (editContext.Validate())
+        {
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await createAccount.PostAsync("accounts/create/phone", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+            }
+            else
+            {
+
+                navigator.NavigateTo("/login", true);
+
+            }
+
+        }
+        else
+        {
+
+            Progress = FormProgress.Error;
+
+            FormError = "Form failed validation";
+
+            return;
+        }
+    }
+
+}

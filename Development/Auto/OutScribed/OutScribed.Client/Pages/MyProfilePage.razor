@@ -1,0 +1,427 @@
+﻿@page "/my/profile"
+
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+@inject IJSRuntime JsRuntime
+
+<PageTitle>My Profile - OutScribed</PageTitle>
+
+@if (Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+            @foreach (var component in Components.OrderBy(c=>c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.UpdateUserContact)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UpdateUserContactForm Component="@component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdateProfile)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <UpdateProfileForm Component="@component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UpdatePassword)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <UpdatePasswordForm Component="@component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+
+                </div>
+
+            }
+        }
+
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Profile" @ref="Navigation" />
+
+<main>
+
+    <div class="user-profile-heading">
+
+        <h1 class="at content-heading">
+            @StarterData.Username
+        </h1>
+
+        <h2 class="content-summary">
+            User Since @StarterData.RegisterDateToString <br />
+            @StarterData.ProfileViewsToString Views <span>|</span> @StarterData.FollowersToString Followers
+        </h2>
+
+    </div>
+
+    <div class="user-details-container">
+
+        <div class="user-details">
+
+            @if (StarterData.Title == null)
+            {
+                <div class="no-profile">
+                    No <br /> Profile
+                </div>
+            }
+            else
+            {
+                <div class="user-photo">
+
+                    <img src="@StarterData.DisplayPhotoToString" />
+
+                </div>
+
+                <h2>
+                    @StarterData.Title
+                </h2>
+
+                <h3>
+                    @StarterData.Bio
+                </h3>
+
+            }
+
+            <div class="dual-link-container">
+
+                <p class="dual-link">
+
+                    <a href="#" @onclick:preventDefault="true"
+                    @onclick='() => AddComponent(new ComponentParameters()
+                                    { ComponentType = ComponentTypes.UpdateProfile})'>
+                        Update Profile
+                    </a>
+                    <a href="#" @onclick:preventDefault="true"
+                    @onclick='() => AddComponent(new ComponentParameters()
+                                    { ComponentType = ComponentTypes.UpdatePassword})'>
+
+                        Change Password
+                    </a>
+                </p>
+            </div>
+
+        </div>
+
+        <div class="contacts-container">
+
+            <div class="contact">
+                <div class="icon">
+                    <p class="facebook"></p>
+                </div>
+                <p class="text">
+                    Facebook
+                    <a href="#"
+                    @onclick:preventDefault="true"
+                    @onclick='() => AddComponent(new ComponentParameters()
+                                    { ComponentType = ComponentTypes.UpdateUserContact,
+                                    ContactType = ContactTypes.Facebook,
+                                    ContactValue = StarterData.Facebook})'>
+                    </a>
+                </p>
+
+                @if (StarterData.Facebook == null)
+                {
+                    <p class="not-found">Not found!</p>
+                }
+                else
+                {
+                    <p class="value">@StarterData.Facebook</p>
+                }
+
+            </div>
+
+            <div class="contact">
+                <div class="icon">
+                    <p class="twitter"></p>
+                </div>
+                <p class="text">
+                    Twitter (X)
+                    <a href="#"
+                    @onclick:preventDefault="true"
+                    @onclick='() => AddComponent(new ComponentParameters()
+                                    { ComponentType = ComponentTypes.UpdateUserContact,
+                                    ContactType = ContactTypes.Twitter,
+                                    ContactValue = StarterData.Twitter})'>
+                    </a>
+                </p>
+
+                @if (StarterData.Twitter == null)
+                {
+                    <p class="not-found">Not found!</p>
+                }
+                else
+                {
+                    <p class="value">@StarterData.Twitter</p>
+                }
+
+            </div>
+
+            <div class="contact">
+                <div class="icon">
+                    <p class="linkedin"></p>
+                </div>
+                <p class="text">
+                    LinkedIn
+                    <a href="#"
+                    @onclick:preventDefault="true"
+                    @onclick='() => AddComponent(new ComponentParameters()
+                                    { ComponentType = ComponentTypes.UpdateUserContact,
+                                    ContactType = ContactTypes.LinkedIn,
+                                    ContactValue = StarterData.LinkedIn})'>
+                    </a>
+                </p>
+
+                @if (StarterData.LinkedIn == null)
+                {
+                    <p class="not-found">Not found!</p>
+                }
+                else
+                {
+                    <p class="value">@StarterData.LinkedIn</p>
+                }
+
+            </div>
+
+            <div class="contact">
+                <div class="icon">
+                    <p class="email"></p>
+                </div>
+                <p class="text">
+                    Email Address
+                    <a href="#"
+                    @onclick:preventDefault="true"
+                    @onclick='() => AddComponent(new ComponentParameters()
+                                    { ComponentType = ComponentTypes.UpdateUserContact,
+                                    ContactType = ContactTypes.Email,
+                                    ContactValue = StarterData.Email})'>
+                    </a>
+                </p>
+
+                @if (StarterData.Email == null)
+                {
+                    <p class="not-found">Not found!</p>
+                }
+                else
+                {
+                    <p class="value">@StarterData.Email</p>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+    public StarterData StarterData { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "Server")
+        {
+            navigator.NavigateTo($"/login?returnUrl=/my/profile", true);
+        }
+
+        Components = new();
+
+        await LoadStarterData();
+
+    }
+
+    public async Task LoadStarterData()
+    {
+
+        var starterData = await localStorage.GetItemAsync<StarterData>("starterData");
+
+        if (starterData == null)
+        {
+            navigator.NavigateTo($"/login?returnUrl=/my/profile", false);
+
+            return;
+        }
+        else
+        {
+            StarterData = starterData;
+
+        }
+
+    }
+
+    bool IsModalOpen { get; set; } = false;
+
+    public string? Info { get; set; }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+    private void AddComponent(ComponentParameters component)
+    {
+
+        shouldRender = false;
+
+        Components.Insert(0, component);
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            // await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        component.HasContents = true;
+
+        component.ComponentState = ComponentStates.Enter;
+
+        shouldRender = true;
+
+    }
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+            }
+            else if (component.ComponentType == ComponentTypes.UpdateUserContact
+            || component.ComponentType == ComponentTypes.UpdateProfile)
+            {
+
+                await LoadStarterData();
+
+            }
+
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if(info != null)
+            await SetInfo(info);
+
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnModalClose");
+
+        // StateHasChanged();
+
+    }
+
+
+}

@@ -1,0 +1,338 @@
+﻿@inject IApiPostServices<CreateTaleCommentResponse,CreateTaleResponseRequest> saveResponse
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IJSRuntime JSRuntime
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="CreateTaleCommentForm">
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    New Response
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved response. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Responding to comments
+                    </li>
+                    <li>
+                        This allows you to rebut or agree with commentaries by other users.
+                    </li>
+                    <li>
+                        You have options to rich text features such as bold, italics,
+                        underline, and hyperlink. To use the rich features, simply type
+                        text and highlight.
+                    </li>
+                    <li>
+                        Note that all responses must be respectful and issue-focused.
+                        Any comment that fails to attain to our community guidelines
+                        would be removed.
+                    </li>
+                    <li>
+                        Responses are restricted to 50 - 1024 characters. If you have a lot more to
+                        say, you can spin off a thread the original thread.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <div class="form-editor">
+
+                    @if (EditorEnabled)
+                    {
+                        <div @ref="@ToolBar">
+
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                                <select class="ql-color"></select>
+                            </span>
+
+                            <span class="ql-formats">
+                                <button class="ql-list" value="ordered"></button>
+                                <button class="ql-list" value="bullet"></button>
+                            </span>
+
+                            <span class="ql-formats">
+                                <button class="ql-link"></button>
+                            </span>
+
+                        </div>
+                    }
+
+                    <div @ref="@QuillElement" />
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public CreateTaleResponseRequest FormData { get; set; } = default!;
+
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private ElementReference QuillElement;
+
+    private ElementReference ToolBar;
+
+
+    private bool EditorEnabled = true;
+
+    private bool ShowHelp = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await QuillInterop.CreateQuill(
+                JSRuntime,
+                QuillElement,
+                ToolBar,
+                false,
+                "Type here...",
+                "bubble",
+                "info");
+
+        }
+    }
+
+    public async Task<string> GetHTML()
+    {
+        return await QuillInterop.GetHTML(
+            JSRuntime, QuillElement);
+    }
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+        {
+            TaleId = Component.TaleFocusComment.TaleId,
+                ParentId = Component.TaleFocusComment.Id,
+                CommentatorId = Component.TaleFocusComment.CommentatorId
+        };
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        Progress = FormProgress.Loading;
+
+        FormError = string.Empty;
+
+        var details = await GetHTML();
+
+        var stripped = details.RemoveTags();
+
+        if (stripped == null)
+        {
+            FormError = "Response cannot be null";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+
+        if (stripped.Length < 50 || stripped.Length > 1024)
+        {
+            FormError = $"Response - {stripped.Length} - must be between 50 and 1024 characters";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+
+        FormData.Details = details;
+
+        if (editContext.Validate())
+        {
+
+            var result = await saveResponse.PostAsync("tales/response", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                if(result.Value.Comment == null)
+                {
+
+                    Progress = FormProgress.Close;
+
+                }
+                else
+                {
+
+                    Component.TaleComment = result.Value.Comment;
+
+                    Component.Info = "Response Posted";
+
+                    await OnRemoveComponent.InvokeAsync(Component);
+
+                }
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}

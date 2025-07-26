@@ -1,0 +1,44 @@
+﻿
+@inject IAuthenticationServices authenticate
+@inject NavigationManager navigator
+
+<footer>
+
+    <div class="inner-footer">
+
+        <div class="footer-logo">
+
+            <h1 class="logo-text">
+                OutScribed
+            </h1>
+
+            <h2>
+                The Truth, The Fiction, & Everything In-between
+            </h2>
+
+        </div>
+
+        <p>
+            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/about-us", false)'>About Us</a>
+            <a href="mailto:info@outscribed.com">Contact Us</a>
+            <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/policies", false)'>Policies</a>
+        </p>
+
+        <div class="footer-socials">
+
+            <a href="#" class="facebook"></a>
+            <a href="https://x.com/OutscribedCom" class="twitter"></a>
+            <a href="#" class="linkedin"></a>
+            <a href="#" class="whatsapp"></a>
+
+        </div>
+
+        <h4>
+
+            &copy;2025. All Rights Reserved.
+
+        </h4>
+
+    </div>
+
+</footer>

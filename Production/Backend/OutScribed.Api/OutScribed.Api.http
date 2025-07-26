@@ -1,0 +1,6 @@
+@OutScribed.Api_HostAddress = http://localhost:5210
+
+GET {{OutScribed.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

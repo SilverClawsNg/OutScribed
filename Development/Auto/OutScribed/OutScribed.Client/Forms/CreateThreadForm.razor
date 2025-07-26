@@ -1,0 +1,306 @@
+﻿@inject IApiPostServices<bool,CreateThreadRequest> saveThread
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IJSRuntime JSRuntime
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="CreateThreadForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    New Thread
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved thread. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Success)
+            {
+                <div class="form-progress">
+
+                    <SuccessGif />
+
+                    <p class="progress-message">
+                        Draft of thread was successfully created.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo("/my/threads", false)'>
+                            Go To Threads
+                        </a>
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => RemoveComponent()">
+                            Close
+                        </a>
+
+                    </div>
+
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Spinning Off Tales
+                    </li>
+                    <li>
+                        Threads allows you to expand on the theme of a tale
+                        such as addressing matters arising although there are no 
+                        restrictions on the topic of your thread.
+                    </li>
+                    <li>
+                        The first step to creating threads requires a title and a category. Afterwards
+                        you would be presented an interface to add the other aspects of the tale
+                        such as country, summary, photo, details, and tagging.
+                    </li>
+                    <li>
+                        Titles are restricted to 128 characters. While they are required to be concise,
+                        they should also be able to convey enticing hints about the thread's contents.
+                    </li>
+                    <li>
+                        The category of the original tale is pre-selected but you can select 
+                        another category that best fits or simply choose <strong>Miscellaneous</strong>
+                        if none applies.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <fieldset>
+
+                    <select class="form-field" @onchange="@CategoryClicked">
+
+                        <option></option>
+
+                        @foreach (var category in Categories)
+                        {
+                            if (FormData.Category != null && category.Value == (int)FormData.Category)
+                            {
+                                <option value="@category.Value" selected="selected">@category.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@category.Value">@category.Text</option>
+                            }
+                        }
+
+                    </select>
+
+                    <label class="@(FormData.Category == null ? null : "stay")">Category</label>
+
+                </fieldset>
+
+                <fieldset>
+                    <InputText @bind-Value=FormData.Title id="Title" class="form-field" />
+                    <label class="@(string.IsNullOrEmpty(FormData.Title) ? null : "stay")">Title</label>
+                    <ValidationMessage For="() => FormData.Title" />
+                </fieldset>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public CreateThreadRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+
+    private bool ShowHelp = false;
+
+
+    List<DropdownList> Categories = new();
+
+    protected override void OnInitialized()
+    {
+
+        Categories = getSelect.Get<Categories>();
+
+        FormData = new()
+        {
+                TaleId = Component.Tale.Id,
+                Category = Component.Tale.Category,
+        };
+    }
+
+    protected void CategoryClicked(ChangeEventArgs e)
+    {
+        FormData.Category = e.Value == null ? null : (Categories)Enum.Parse(typeof(Categories), e.Value.ToString()!);
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await saveThread.PostAsync("threads/create", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                Component.Info = "Thread Created";
+
+                Progress = FormProgress.Success;
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}

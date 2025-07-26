@@ -1,0 +1,899 @@
+﻿@page "/thread/{Id}"
+
+
+@inject IAuthenticationServices authenticate
+@inject IApiGetServices<ThreadResponse> getThread
+@inject IApiPatchServices<CountsResponse,RateThreadRequest> rateThread
+@inject IApiPatchServices<CountsResponse,FollowThreadRequest> followThread
+@inject IApiPatchServices<CountsResponse,FollowUserRequest> followThreader
+
+@inject IApiGetServices<UserProfileResponse> getProfile
+
+@inject IApiGetServices<ThreadCommentsResponse> getComments
+@inject IApiGetServices<ThreadResponsesResponse> getResponses
+
+@inject NavigationManager navigator
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Threads - OutScribed</PageTitle>
+
+@if(Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<div id="modal" class="@(IsModalOpen ? "active" : null)">
+
+    <a href="#" class="close-modal-wrapper" @onclick:preventDefault="true" @onclick='() => CloseModal()'></a>
+
+    <div class="@(IsExpandModal ? $"inner-modal expand" : $"inner-modal")">
+
+        @if (Components != null && Components.Any())
+        {
+
+            @foreach (var component in Components.OrderBy(c=>c.Date))
+            {
+
+                <div @key="component" class="@(component == Components.First() ? $"modal-contents first {component.ComponentClass}" : $"modal-contents {component.ComponentClass}")">
+
+                    @if (component.ComponentType == ComponentTypes.ThreadComments)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <ThreadCommentsComponent Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnCloseModal="CloseModal"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo" />
+                        }
+
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.ThreadResponses)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <ThreadResponsesComponent Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnCloseModal="CloseModal"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.CreateThreadComment)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <CreateThreadCommentForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.CreateThreadResponse)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <CreateThreadResponseForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.FlagThread)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <FlagThreadForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.FlagThreadComment)
+                    {
+
+                        if (component.HasContents)
+                        {
+
+                            <FlagThreadCommentForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnAddComponent="AddComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.LoginUser)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <LoginUserForm Component="component"
+                            OnRemoveComponent="RemoveComponent"
+                            OnExpandModal="ExpandModal" />
+                        }
+
+                    }
+                    else if (component.ComponentType == ComponentTypes.UserProfile)
+                    {
+                        if (component.HasContents)
+                        {
+
+                            <UserProfileComponent Component="component"
+                            OnExpandModal="ExpandModal"
+                            OnAddComponent="AddComponent"
+                            OnSetInfo="SetInfo"
+                            OnRemoveComponent="RemoveComponent" />
+
+                        }
+
+                    }
+
+                </div>
+
+            }
+
+        }
+
+    </div>
+
+</div>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.None" @ref="Navigation" />
+
+<main>
+
+    @if (InputError == null)
+    {
+
+        if (HasInput)
+        {
+
+            <div class="item-container">
+
+                <div class="item-header">
+
+                    <p class="item-subheading">
+                        @Input.CategoryToString <span class="divider">|</span>
+                        @if (Input.CountryToString != null)
+                        {
+                            @Input.CountryToString
+                            <span class="divider">|</span>
+                        }
+                        @Input.DateToString
+                    </p>
+
+                    <h1 class="item-heading">
+                        @Input.Title
+
+                        <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.ThreaderId})'>
+                            @Input.ThreaderUsername
+                        </a>
+                    </h1>
+
+                    <h3 class="item-summary">
+                        @Input.Summary
+                    </h3>
+
+                </div>
+
+                <div class="item-image">
+                    <img src="@Input.PhotoUrlToString" />
+                </div>
+
+                <div class="item-details">
+
+                    <div class="richtext">
+                        @(((MarkupString)Input.DetailsDecoded).Sanitize())
+                    </div>
+
+                    @if (Input.Addendums != null && Input.Addendums.Count > 0)
+                    {
+                        <h4 class="addendum-header">
+                            Addendums
+                        </h4>
+
+                        @foreach (var addendum in Input.Addendums)
+                        {
+                            <div class="addendum-container">
+                                <p class="addendum-date">
+                                    @addendum.DateToString
+                                </p>
+                                <div class="richtext">
+                                    @(((MarkupString)addendum.DetailsDecoded).Sanitize())
+                                </div>
+                            </div>
+                        }
+                    }
+
+                </div>
+
+                <div class="item-tags">
+                    <h4>
+                        This thread was spunned off:
+                    </h4>
+                    <p>
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tale/{Input.TaleUrl}")'>
+                            @Input.TaleTitle
+                        </a>
+                    </p>
+                </div>
+
+                @if (Input.Tags != null && Input.Tags.Count > 0)
+                {
+                    <div class="item-tags">
+                        <h4>
+                            Tagged In:
+                        </h4>
+                        <p>
+                            @foreach (var tag in Input.Tags)
+                            {
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/threads?tag={tag}")'>
+                                    #@tag
+                                </a>
+                            }
+                        </p>
+
+                    </div>
+                }
+
+                <div class="item-footer">
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+                            <h5>
+                                The Writer
+                            </h5>
+                        </div>
+
+                        <div class="section-contents">
+
+                            <p class="dual-link">
+
+                                @if (Input.IsFollowingThreader)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThreader(false)'>
+                                        Unfollow - @Input.ThreaderFollowersToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThreader(true)'>
+                                        Follow - @Input.ThreaderFollowersToString
+                                    </a>
+                                }
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Input.ThreaderId})'>
+                                    Profile - @Input.ThreaderProfileViewsToString
+                                </a>
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+
+                            <h5>
+                                Rating
+                            </h5>
+
+                        </div>
+
+                        <div class="section-contents">
+
+                            <p class="dual-link">
+
+                                @if (Input.MyRatingsToString != null)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Input.MyRatingsToString)'>
+                                        Love It - @Input.LikesToString
+                                    </a>
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Input.MyRatingsToString)'>
+                                        Hate It - @Input.HatesToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="left" href="#" @onclick:preventDefault="true" @onclick='() => RateThread(RateTypes.Like)'>
+                                        Love It - @Input.LikesToString
+                                    </a>
+                                    <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => RateThread(RateTypes.Hate)'>
+                                        Hate It - @Input.HatesToString
+                                    </a>
+                                }
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+                            <h5>
+                                Commenting
+                            </h5>
+                        </div>
+
+                        <div class="section-contents">
+
+                            <p class="dual-link">
+
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateThreadComment, Id = Input.Id})'>
+                                    Comment - @Input.CommentsCountToString
+                                </a>
+
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                    <section>
+
+                        <div class="item-footer-section-header">
+                            <h5>
+                                The Thread
+                            </h5>
+                        </div>
+
+                        <div class="section-contents">
+
+                            <p class="dual-link">
+                                @if (Input.IsFollowingThread)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(false)'>
+                                        Unfollow - @Input.FollowersToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => FollowThread(true)'>
+                                        Save For Later - @Input.FollowersToString
+                                    </a>
+                                }
+                                @if (Input.HasFlagged)
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => SetInfo("You have already flagged this thread")'>
+                                        Flags - @Input.FlagsToString
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.FlagThread})'>
+                                        Flags - @Input.FlagsToString
+                                    </a>
+                                }
+                            </p>
+
+                        </div>
+
+                    </section>
+
+                </div>
+
+                <div class="item-options">
+
+                    <div class="item-options-others">
+
+                        <a class="icon comments" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.ThreadComments, Id = Input.Id})'>
+                            Comments
+                        </a>
+
+                    </div>
+
+                    <div class="item-options-socials">
+
+                        <a href="#" class="icon facebook"></a>
+                        <a href="#" class="icon twitter"></a>
+                        <a href="#" class="icon linkedin"></a>
+                        <a href="#" class="icon whatsapp"></a>
+
+                        <a href="#" class="stats">
+                            @Input.SharesToString
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        }
+        else
+        {
+            <LoadingComponent Type="--- loading thread ---" />
+        }
+    }
+    else
+    {
+        <ErrorComponent Message=@InputError Type="thread" />
+    }
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; } = default!;
+
+    public string? Info { get; set; }
+
+
+    bool IsModalOpen { get; set; } = false;
+
+    bool HasInput { get; set; } = false;
+
+    public ThreadResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    [Parameter]
+    public NavigationComponent Navigation { get; set; } = default!;
+
+
+    private async Task FollowThread(bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+        FollowThreadRequest formData = new()
+            {
+                ThreadId = Input.Id,
+                Option = option
+            };
+
+
+        var result = await followThread.PatchAsync("threads/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.IsFollowingThread = option;
+
+            Input.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Thread Followed");
+
+            }
+            else
+            {
+                await SetInfo("Thread Unfollowed");
+
+            }
+
+        }
+    }
+
+    private async Task RateThread(RateTypes rate)
+    {
+
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        RateThreadRequest formData = new()
+            {
+                ThreadId = Input.Id,
+                RateType = rate
+            };
+
+        var result = await rateThread.PatchAsync("threads/rate", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.MyRatings = rate;
+
+            if (rate == RateTypes.Like)
+            {
+                Input.Likes = result.Value.Counts;
+
+                await SetInfo("Thread Liked");
+
+            }
+            else
+            {
+                Input.Hates = result.Value.Counts;
+
+                await SetInfo("Thread Disliked");
+
+            }
+
+        }
+    }
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+
+    private async Task FollowThreader(bool option)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await AddComponent(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        FollowUserRequest formData = new()
+            {
+                UserId = Input.ThreaderId,
+                Option = option
+            };
+
+        var result = await followThreader.PatchAsync("accounts/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            Input.IsFollowingThreader = option;
+
+            Input.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Writer Followed");
+
+            }
+            else
+            {
+                await SetInfo("Writer Unfollowed");
+
+            }
+
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+        }
+
+        Components = new();
+
+        var result = await getThread.GetAsync($"threads/{Id}", CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+
+    bool IsExpandModal { get; set; } = false;
+
+    int ScrollPosition { get; set; }
+
+    List<ComponentParameters> Components { get; set; } = default!;
+
+    private async Task AddComponent(ComponentParameters component)
+    {
+
+        if (component.Reload == false)
+        {
+
+            shouldRender = false;
+
+            Components.Insert(0, component);
+
+        }
+
+        if (component.Append == false)
+        {
+            component.HasContents = false;
+        }
+
+        if (!IsModalOpen)
+        {
+            IsModalOpen = true;
+
+            await JsRuntime.InvokeVoidAsync("OnModalOpen");
+        }
+
+        await authenticate.CheckJwtTokenAsync();
+
+        if (component.ComponentType == ComponentTypes.UserProfile)
+        {
+            var result = await getProfile.GetAsync($"users/profile/{component.Id}", CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+
+            }
+            else
+            {
+                component.Profile = result.Value;
+            }
+        }
+        else if (component.ComponentType == ComponentTypes.ThreadComments)
+        {
+
+            var url = component.Url == null ? $"threads/comments/{component.Id}" : component.Url;
+
+            var result = await getComments.GetAsync(url, CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+            }
+            else
+            {
+                if (component.Append == true)
+                {
+                    if (component.ThreadComments != null && component.ThreadComments.Comments != null && result.Value.Comments != null)
+                    {
+                        component.ThreadComments.Comments.AddRange(result.Value.Comments);
+                        component.ThreadComments.More = result.Value.More;
+                        component.ThreadComments.Pointer = result.Value.Pointer;
+                    }
+                }
+                else
+                {
+
+                    component.ThreadComments = result.Value;
+
+                }
+
+            }
+
+        }
+        else if (component.ComponentType == ComponentTypes.ThreadResponses)
+        {
+
+            var url = component.Url == null ? $"threads/responses/{component.ThreadComment!.Id}" : component.Url;
+
+            var result = await getResponses.GetAsync(url, CancelToken);
+
+            if (result.IsFailure)
+            {
+                component.ErrorMessage = result.Error ?? "Unknown server error";
+            }
+            else
+            {
+
+                //New responses
+                if (component.Reload == false && component.Append == false)
+                {
+
+                    if (component.ThreadFocusComment != null)
+                    {
+                        if (component.ThreadRecursiveComments == null)
+                            component.ThreadRecursiveComments = new();
+
+                        component.ThreadRecursiveComments.Insert(0, component.ThreadFocusComment);
+                    }
+
+                    component.ThreadFocusComment = component.ThreadComment;
+
+                    component.ThreadResponses = result.Value;
+
+                }
+                //More responses
+                else if (component.Append == true)
+                {
+                    if (component.ThreadResponses != null && component.ThreadResponses.Responses != null && result.Value.Responses != null)
+                    {
+                        component.ThreadResponses.Responses.AddRange(result.Value.Responses);
+                        component.ThreadResponses.More = result.Value.More;
+                    }
+                }
+                //Filter responses
+                else
+                {
+                    component.ThreadResponses = result.Value;
+                }
+
+            }
+
+        }
+
+        if (component.Append == false)
+        {
+            component.HasContents = true;
+        }
+
+        if (component.Reload == false)
+        {
+            component.ComponentState = ComponentStates.Enter;
+        }
+
+        shouldRender = true;
+
+    }
+
+
+    public async Task RemoveComponent(ComponentParameters component)
+    {
+
+        var info = component.Info;
+
+        component.ComponentState = ComponentStates.Leave;
+
+        if (info != null)
+        {
+            if (component.ComponentType == ComponentTypes.LoginUser)
+            {
+                await Navigation.Refresh();
+            }
+            else if (component.ComponentType == ComponentTypes.CreateThreadComment)
+            {
+
+                if (component.ThreadComment != null)
+                {
+
+                    var commentsComponent = Components.Where(c => c.ComponentType == ComponentTypes.ThreadComments).FirstOrDefault();
+
+                    if (commentsComponent != null && commentsComponent.ThreadComments != null
+                    && commentsComponent.ThreadComments.Comments != null)
+                    {
+                        commentsComponent.ThreadComments.Comments.Insert(0, component.ThreadComment);
+                    }
+
+                    Input.CommentsCount++;
+
+                }
+
+            }
+            else if (component.ComponentType == ComponentTypes.CreateThreadResponse)
+            {
+
+                if (component.ThreadComment != null)
+                {
+
+                    var responsesComponent = Components.Where(c => c.ComponentType == ComponentTypes.ThreadResponses).OrderByDescending(c => c.Date).FirstOrDefault();
+
+                    if (responsesComponent != null && responsesComponent.ThreadResponses != null)
+                    {
+
+                        if (responsesComponent.ThreadResponses.Responses == null)
+                            responsesComponent.ThreadResponses.Responses = new();
+
+                        responsesComponent.ThreadResponses.Responses.Insert(0, component.ThreadComment);
+
+                        responsesComponent.ThreadResponses.Counter++;
+                    }
+
+                    component.ThreadFocusComment.ResponsesCount++;
+
+                }
+
+            }
+         
+        }
+
+        await Task.Delay(1000);
+
+        Components.Remove(component);
+
+        if (Components.Count == 0)
+        {
+            await CloseModal();
+        }
+
+        StateHasChanged();
+
+        if (info != null)
+            await SetInfo(info);
+
+    }
+
+    public void ExpandModal()
+    {
+
+        IsExpandModal = !IsExpandModal;
+
+    }
+
+    private bool shouldRender = true;
+
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
+
+    public async Task CloseModal()
+    {
+
+        Components = new();
+
+        IsModalOpen = false;
+
+        await JsRuntime.InvokeVoidAsync("OnModalClose");
+
+        // StateHasChanged();
+
+    }
+}

@@ -1,0 +1,54 @@
+﻿@page "/logout"
+
+@using System.Net.Http.Headers
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject HttpClient httpClient
+@inject IApiPatchServices<bool,LogoutUserRequest> patchLogout
+
+<PageTitle>Logout - OutScribed</PageTitle>
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.Logout" />
+
+<main>
+
+    <LoadingComponent Type="--- logging out ---" />
+
+</main>
+
+<FooterComponent />
+
+@code {
+
+    [SupplyParameterFromForm]
+    public LogoutUserRequest FormData { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+
+            FormData = new();
+
+            FormData.RefreshToken = await localStorage.GetItemAsync<string>("refreshToken");
+
+            await patchLogout.PatchAsync("accounts/logout", FormData, CancelToken);
+
+            await localStorage.RemoveItemsAsync(["refreshToken", "jwtToken", "starterData"]);
+
+            httpClient.DefaultRequestHeaders.Authorization = null;
+
+        }
+
+        navigator.NavigateTo("/", true);
+
+    }
+
+}

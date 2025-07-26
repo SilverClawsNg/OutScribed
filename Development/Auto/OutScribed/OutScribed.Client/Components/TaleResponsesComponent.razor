@@ -1,0 +1,607 @@
+﻿@inject IAuthenticationServices authenticate
+@inject IApiPatchServices<CountsResponse,RateTaleCommentRequest> rateComment
+@inject NavigationManager navigator
+@inject IJSRuntime JsRuntime
+
+<div class="modal-header">
+
+    <div class="inner-modal-header">
+
+        <h1>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => CloseModal())'>
+                Tale
+            </a>
+
+        </h1>
+
+        <div class="modal-header-menu">
+
+            <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+            <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+@if (Component.ErrorMessage == null)
+{
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (IsShowPrevious)
+            {
+
+                @if (Component.TaleRecursiveComments != null && Component.TaleRecursiveComments.Count > 0)
+                {
+                    <div class="comments-container">
+
+                        @foreach (var comment in Component.TaleRecursiveComments)
+                        {
+                            <div class="comment">
+                                <div class="comment-image alt">
+                                    <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = comment.CommentatorId})'>
+                                        <img src="@comment.CommentatorDisplayPhotoToString" />
+                                    </a>
+                                    <div class="vertical-pointer-holder">
+                                        <span></span>
+                                    </div>
+                                </div>
+                                <div class="comment-content">
+                                    <div class="user-details">
+                                        <h1>
+                                            <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = comment.CommentatorId})'>
+                                                @comment.CommentatorUsername
+                                            </a>
+                                        </h1>
+                                        <p>
+                                            @comment.DateToString
+                                        </p>
+                                    </div>
+
+                                    <p class="comment-details">
+                                        <div class="richtext">
+                                            @(((MarkupString)comment.DetailsDecoded).Sanitize())
+                                        </div>
+                                    </p>
+
+                                    <div class="comment-links">
+                                        <div class="left-comment-links">
+                                            @if (comment.MyRatingsToString != null)
+                                            {
+                                                <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(comment.MyRatingsToString)'>
+                                                    <span>@comment.Likes</span>
+                                                </a>
+                                                <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(comment.MyRatingsToString)'>
+                                                    <span>@comment.Hates</span>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => Rate(comment, RateTypes.Like)'>
+                                                    <span>@comment.Likes</span>
+                                                </a>
+                                                <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => Rate(comment, RateTypes.Hate)'>
+                                                    <span>@comment.Hates</span>
+                                                </a>
+                                            }
+
+                                        </div>
+                                        <div class="right-comment-links">
+                                            <a class="icon reply" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateTaleResponse, TaleFocusComment = comment})'>
+
+                                            </a>
+                                            @if (comment.HasFlagged)
+                                            {
+                                                <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo("You have already flagged this comment")'>
+                                                </a>
+
+                                            }
+                                            else
+                                            {
+                                                <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.FlagTaleComment, TaleComment = comment})'>
+                                                </a>
+                                            }
+
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        }
+
+
+                    </div>
+                }
+
+                <div class="comments-container">
+
+                    <div class="comment">
+                        <div class="comment-image">
+                            <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Component.TaleFocusComment.CommentatorId})'>
+                                <img src="@Component.TaleFocusComment.CommentatorDisplayPhotoToString" />
+                            </a>
+                        </div>
+                        <div class="comment-content">
+                            <div class="user-details">
+                                <h1>
+                                    <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = Component.TaleFocusComment.CommentatorId})'>
+                                        @Component.TaleFocusComment.CommentatorUsername
+                                    </a>
+                                </h1>
+                                <p>
+                                    @Component.TaleFocusComment.DateToString
+                                </p>
+                            </div>
+
+                            <p class="comment-details">
+                                <div class="richtext">
+                                    @(((MarkupString)Component.TaleFocusComment.DetailsDecoded).Sanitize())
+                                </div>
+                            </p>
+
+                            <div class="comment-links">
+                                <div class="left-comment-links">
+                                    @if (Component.TaleFocusComment.MyRatingsToString != null)
+                                    {
+                                        <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Component.TaleFocusComment.MyRatingsToString)'>
+                                            <span>@Component.TaleFocusComment.Likes</span>
+                                        </a>
+                                        <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(Component.TaleFocusComment.MyRatingsToString)'>
+                                            <span>@Component.TaleFocusComment.Hates</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => Rate(Component.TaleFocusComment, RateTypes.Like)'>
+                                            <span>@Component.TaleFocusComment.Likes</span>
+                                        </a>
+                                        <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => Rate(Component.TaleFocusComment, RateTypes.Hate)'>
+                                            <span>@Component.TaleFocusComment.Hates</span>
+                                        </a>
+                                    }
+
+                                </div>
+                                <div class="right-comment-links">
+                                    <a class="icon reply" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateTaleResponse, TaleFocusComment = Component.TaleFocusComment})'>
+
+                                    </a>
+                                    @if (Component.TaleFocusComment.HasFlagged)
+                                    {
+                                        <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo("You have already flagged this comment")'>
+                                        </a>
+
+                                    }
+                                    else
+                                    {
+                                        <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.FlagTaleComment, TaleComment = Component.TaleFocusComment})'>
+                                        </a>
+                                    }
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            }
+
+            <a class="@(IsShowPrevious ? "show-previous active" : "show-previous")" href="#" @onclick:preventDefault="true" @onclick='(() => IsShowPrevious = !IsShowPrevious)'></a>
+
+            <div class="filter-container">
+
+                <div class="filter-header alt">
+
+                    <p>
+                        @Component.TaleResponses.CounterToString
+                    </p>
+
+                    <div class="filter-links">
+                        <a href="#" class="filter" @onclick:preventDefault="true" @onclick='() => IsShowFilter = !IsShowFilter'>
+                            Filter
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="@(IsShowFilter ? "filter-contents active" : "filter-contents")">
+
+                <div class="form-container alt">
+
+                    <fieldset class="username">
+
+                        <InputText @bind-Value=@Username id="Username" class="form-field" />
+
+                        <label class="@(Username == null || string.IsNullOrEmpty(Username) ? null : "stay")">Filter by Username</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <InputText @bind-Value=@Keyword id="Keyword" class="form-field" />
+
+                        <label class="@(Keyword == null || string.IsNullOrEmpty(Keyword) ? null : "stay")">Filter by Keyword</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@SortClicked">
+
+                            <option value="-1"></option>
+
+                            <option value="@SortTypes.Most_Recent" selected="@(Sort == SortTypes.Most_Recent.ToString() ? "selected" : null)">Most Recent</option>
+
+                            <option value="@SortTypes.Least_Recent" selected="@(Sort == SortTypes.Least_Recent.ToString() ? "selected" : null)">Least Recent</option>
+
+                            <option value="@SortTypes.Most_Liked" selected="@(Sort == SortTypes.Most_Liked.ToString() ? "selected" : null)">Most Liked</option>
+
+                            <option value="@SortTypes.Least_Liked" selected="@(Sort == SortTypes.Least_Liked.ToString() ? "selected" : null)">Least Liked</option>
+
+                        </select>
+
+                        <label class="@(Sort == null || string.IsNullOrEmpty(Sort) || Sort == "-1" ? null : "stay")">Order Results</label>
+
+                    </fieldset>
+
+                    <div class="button-holder">
+
+                        <button @onclick:preventDefault="true" @onclick='() => Filter()'>
+                            Get Responses
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            @if (Component.TaleResponses.Responses != null && Component.TaleResponses.Responses.Count > 0)
+            {
+              
+                <div class="comments-container">
+
+                    @foreach (var comment in Component.TaleResponses.Responses)
+                    {
+                        <div class="comment">
+                            <div class="comment-image">
+                                <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = comment.CommentatorId})'>
+                                    <img src="@comment.CommentatorDisplayPhotoToString" />
+                                </a>
+
+                            </div>
+                            <div class="comment-content">
+                                <div class="user-details">
+                                    <h1>
+                                        <a class="at" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.UserProfile, Id = comment.CommentatorId})'>
+                                            @comment.CommentatorUsername
+                                        </a>
+                                    </h1>
+                                    <p>
+                                        @comment.DateToString
+                                    </p>
+                                </div>
+
+                                <p class="comment-details">
+                                    <div class="richtext">
+                                        @(((MarkupString)comment.DetailsDecoded).Sanitize())
+                                    </div>
+                                </p>
+
+                                <div class="comment-links">
+                                    <div class="left-comment-links">
+                                        @if (comment.MyRatingsToString != null)
+                                        {
+                                            <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(comment.MyRatingsToString)'>
+                                                <span>@comment.Likes</span>
+                                            </a>
+                                            <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo(comment.MyRatingsToString)'>
+                                                <span>@comment.Hates</span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a class="icon love" href="#" @onclick:preventDefault="true" @onclick='() => Rate(comment, RateTypes.Like)'>
+                                                <span>@comment.Likes</span>
+                                            </a>
+                                            <a class="icon hate" href="#" @onclick:preventDefault="true" @onclick='() => Rate(comment, RateTypes.Hate)'>
+                                                <span>@comment.Hates</span>
+                                            </a>
+                                        }
+
+                                    </div>
+                                    <div class="right-comment-links">
+                                        <a class="icon reply" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.CreateTaleResponse, TaleFocusComment = comment})'>
+
+                                        </a>
+                                        @if (comment.HasFlagged)
+                                        {
+                                            <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => SetInfo("You have already flagged this comment")'>
+                                            </a>
+
+                                        }
+                                        else
+                                        {
+                                            <a class="icon flag" href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.FlagTaleComment, TaleComment = comment})'>
+                                            </a>
+                                        }
+                                        @if (comment.ResponsesCount > 0)
+                                        {
+                                            <a href="#" @onclick:preventDefault="true" @onclick='() => AddComponent(new ComponentParameters()
+                                                    { ComponentType = ComponentTypes.TaleResponses, TaleComment = comment, TaleFocusComment = Component.TaleFocusComment, TaleRecursiveComments = Component.TaleRecursiveComments!})'>
+                                                <span>@comment.ResponsesCount</span> Replies
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a class="disabled" href="#">
+                                                <span>@comment.ResponsesCount</span>   Replies
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+
+                </div>
+
+                <div class="navigation-container">
+
+                    <div class="navigation-links">
+
+                        @if (Component.TaleResponses.More)
+                        {
+                            <a href="#" class="more" @onclick:preventDefault="true" @onclick='() => LoadMore()'></a>
+                        }
+                        else
+                        {
+                            <a href="#" class="more disabled" @onclick:preventDefault="true"> </a>
+                        }
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <div class="no-content">
+
+                    <ErrorGif />
+
+                    <h3>
+                        No Result!
+                    </h3>
+
+                    @if (Component.TaleResponses.Keyword != null)
+                    {
+                        <p>
+                            It appears no response matches your keywords.
+                        </p>
+                        <p>
+                            Try searching again with more specific keywords. Note that we do not search common words
+                            like "is", "are", "them", etc.
+                        </p>
+
+                    }
+                    else if (Component.TaleResponses.Username != null)
+                    {
+                        <p>
+                            It appears the user: <strong>@Component.TaleResponses.Username</strong> has not responded to this comment.
+                        </p>
+
+                    }
+                    else
+                    {
+                        <p>
+                            No comment found!
+                        </p>
+                        <p>
+                            It appears there are currently no responses for this comment.
+                        </p>
+                    }
+                  
+
+                </div>
+            }
+
+      
+        </div>
+
+    </div>
+}
+else
+{
+    <ErrorComponent Message=@Component.ErrorMessage
+                    Type="tale comments" />
+}
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    bool IsShowFilter { get; set; } = false;
+
+    bool IsShowPrevious { get; set; } = false;
+
+    bool Window { get; set; } = false;
+
+
+    string? Sort { get; set; }
+
+    string? Username { get; set; } = null;
+
+    private string? Keyword { get; set; } = null;
+
+    protected void SortClicked(ChangeEventArgs e)
+    {
+        Sort = e.Value == null ? null : e.Value.ToString();
+    }
+
+    private async Task Rate(TaleCommentSummary comment, RateTypes rate)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+        }
+
+        RateTaleCommentRequest formData = new()
+            {
+                TaleId = comment.TaleId,
+                CommentId = comment.Id,
+                RateType = rate
+            };
+
+        var result = await rateComment.PatchAsync("tales/rate/comment", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            comment.MyRatings = rate;
+
+            if (rate == RateTypes.Like)
+            {
+                comment.Likes = result.Value.Counts;
+
+                await SetInfo("You liked a response");
+
+            }
+            else
+            {
+                comment.Hates = result.Value.Counts;
+
+                await SetInfo("You hated a response");
+
+            }
+
+        }
+    }
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<string> OnSetInfo { get; set; }
+
+    [Parameter]
+    public EventCallback OnCloseModal { get; set; }
+
+    private async Task CloseModal() =>
+       await OnCloseModal.InvokeAsync();
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+    private async Task AddComponent(ComponentParameters component) =>
+    await OnAddComponent.InvokeAsync(component);
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+    private async Task SetInfo(string info) =>
+     await OnSetInfo.InvokeAsync(info);
+
+    public async Task LoadMore()
+    {
+
+        var url = $"tales/responses/{Component.TaleResponses.ParentId}?";
+
+        if (!string.IsNullOrEmpty(Sort) && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Username))
+        {
+            url = url + $"username={Username}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        url = url + $"pointer={Component.TaleResponses.Pointer++}&size=5";
+
+        Component.Reload = true;
+
+        Component.Append = true;
+
+        await OnAddComponent.InvokeAsync(Component);
+    }
+
+    public async Task Filter()
+    {
+
+        var url = $"tales/responses/{Component.TaleResponses.ParentId}?";
+
+        if (!string.IsNullOrEmpty(Sort) && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Username))
+        {
+            url = url + $"username={Username}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        Component.Url = url + "size=5";
+
+        Component.Append = false;
+
+        Component.Reload = true;
+
+        await OnAddComponent.InvokeAsync(Component);
+    }
+}

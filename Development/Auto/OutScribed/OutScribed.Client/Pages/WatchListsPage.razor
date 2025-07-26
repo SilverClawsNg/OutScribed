@@ -1,0 +1,491 @@
+﻿@page "/watchlists"
+
+@inject ISelectServices getSelect
+@inject NavigationManager navigator
+@inject IApiGetServices<AllWatchListsResponse> getWatchlists
+@inject IJSRuntime JsRuntime
+@inject IAuthenticationServices authenticate
+@inject IApiPatchServices<CountsResponse,FollowWatchListRequest> followWatchList
+
+<PageTitle>Watchlists - OutScribed</PageTitle>
+
+@if (Info != null)
+{
+    <div id="quick-info">@Info</div>
+}
+
+<HeaderComponent Tab="@NavTabs.None" />
+
+<NavigationComponent Tab="@NavTabs.WatchList" />
+
+<main>
+
+    @if (InputError == null)
+    {
+
+        if (HasInput)
+        {
+
+            <div class="filter-container">
+
+                <p class="line"></p>
+
+                <div class="filter-header">
+
+                    <p>
+                        @Input.CounterToString
+                    </p>
+
+                    <div class="filter-links">
+
+                        <a href="#" class="filter" @onclick:preventDefault="true" @onclick='() => IsShowFilter = !IsShowFilter'>
+                            Filter
+                        </a>
+                       
+                    </div>
+
+                </div>
+
+                <p class="line"></p>
+
+            </div>
+
+            <div class="@(IsShowFilter ? "filter-contents active" : "filter-contents")">
+
+                <div class="form-container alt">
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@CategoryClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var category in Categories)
+                            {
+                                if (Category != null && category.Value == int.Parse(Category))
+                                {
+                                    <option value="@category.Value" selected="selected">@category.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@category.Value">@category.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(Category == null || string.IsNullOrEmpty(Category) || Category == "-1" ? null : "stay")">Filter by Category</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@CountryClicked">
+
+                            <option value="-1"></option>
+
+                            @foreach (var country in Countries)
+                            {
+                                if (Country != null && country.Value == int.Parse(Country))
+                                {
+                                    <option value="@country.Value" selected="selected">@country.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@country.Value">@country.Text</option>
+                                }
+                            }
+
+                        </select>
+
+                        <label class="@(Country == null || string.IsNullOrEmpty(Country) || Country == "-1" ? null : "stay")">Filter by Country</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <InputText @bind-Value=@Keyword id="Keyword" class="form-field" />
+
+                        <label class="@(Keyword == null || string.IsNullOrEmpty(Keyword) ? null : "stay")">Filter by Keyword</label>
+
+                    </fieldset>
+
+                    <fieldset>
+
+                        <select class="form-field" @onchange="@SortClicked">
+
+                            <option value="-1"></option>
+
+                            <option value="@SortTypes.Most_Recent" selected="@(Input.Sort == SortTypes.Most_Recent ? "selected" : null)">Most Recent</option>
+
+                            <option value="@SortTypes.Least_Recent" selected="@(Input.Sort == SortTypes.Least_Recent ? "selected" : null)">Least Recent</option>
+
+                            <option value="@SortTypes.Most_Followed" selected="@(Input.Sort == SortTypes.Most_Followed ? "selected" : null)">Most Watched</option>
+
+                        </select>
+
+                        <label class="@(Sort == null || string.IsNullOrEmpty(Sort) || Sort == "-1" ? null : "stay")">Order Results</label>
+
+                    </fieldset>
+
+                    <div class="button-holder">
+
+                        <button @onclick:preventDefault="true" @onclick='() => LoadInput()'>
+                            Get Watchlists
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            if (Input.WatchLists != null && Input.WatchLists.Count > 0)
+            {
+
+                <div class="brief-content-container">
+
+                    @foreach (var watchList in Input.WatchLists)
+                    {
+                        <article class="brief-content">
+
+                            <p class="content-subheading">
+                                @watchList.CategoryToString<span class="divider">|</span>
+                                @if (watchList.CountryToString != null)
+                                {
+                                    @watchList.CountryToString
+                                    <span class="divider">|</span>
+                                }
+                                @watchList.DateToString
+                            </p>
+
+                            <h1 class="content-heading">
+                                @watchList.Title
+                            </h1>
+
+                            <p class="content-summary">
+                                @watchList.Summary <br />
+                                <a class="source" href="@watchList.SourceUrl">@watchList.SourceText</a>
+                            </p>
+                            <div class="content-stats">
+                                <p> <span>@watchList.FollowersToString</span> Watchers</p>
+                                <p>
+                                    <span>@watchList.TalesToString</span>
+
+                                    @if (watchList.Tales > 0)
+                                    {
+                                        <a href="#" @onclick:preventDefault="true" @onclick='() => navigator.NavigateTo($"/tales?watchlistId={watchList.Id}")'>
+                                            Linked Tales
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a href="#" @onclick:preventDefault="true" class="disabled">
+                                            Linked Tales
+                                        </a>
+                                    }
+                                </p>
+                            </div>
+                            <p class="content-save">
+                                @if (watchList.IsFollowingWatchlist)
+                                {
+                                    <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => FollowWatchlist(watchList, false)'>
+                                        Stop Watching
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="right" href="#" @onclick:preventDefault="true" @onclick='() => FollowWatchlist(watchList, true)'>
+                                        Watch
+                                    </a>
+                                }
+                            </p>
+
+                        </article>
+
+                    }
+
+                </div>
+
+                <div class="navigation-container">
+
+                    <div class="navigation-links">
+
+                        @if (Input.Previous)
+                        {
+                            <a href="#" class="previous" @onclick:preventDefault="true" @onclick='() => LoadMore(0)'></a>
+                        }
+                        else
+                        {
+                            <a href="#" class="previous disabled" @onclick:preventDefault="true"> </a>
+                        }
+                        @if (Input.Next)
+                        {
+                            <a href="#" class="next" @onclick:preventDefault="true" @onclick='() => LoadMore(1)'>  </a>
+                        }
+                        else
+                        {
+                            <a href="#" class="next disabled" @onclick:preventDefault="true"> </a>
+                        }
+
+                    </div>
+
+                </div>
+
+            }
+            else
+            {
+                <div class="no-content">
+
+                    <ErrorGif />
+
+                    <h3>
+                        No Result!
+                    </h3>
+
+                    @if (Input.Keyword != null)
+                    {
+                        <p>
+                            It appears no watchlist matches your keywords.
+                        </p>
+                        <p>
+                            Try searching again with more specific keywords. Note that we do not search common words
+                            like "is", "are", "them", etc.
+                        </p>
+
+                    }
+                    else
+                    {
+                        <p>
+                            No watchlist found!
+                        </p>
+
+                    }
+
+                </div>
+
+            }
+        }
+        else
+        {
+             <LoadingComponent Type="--- loading watchlists ---" />
+
+        }
+    }
+    else
+    {
+        <ErrorComponent Message=@InputError Type="watchlists" />
+    }
+
+
+</main>
+
+<FooterComponent />
+
+@code{
+
+    bool IsShowFilter { get; set; } = false;
+
+
+    List<DropdownList> Countries = new();
+
+    List<DropdownList> Categories = new();
+
+
+    bool HasInput { get; set; } = false;
+
+    public AllWatchListsResponse Input { get; set; } = default!;
+
+    private string? InputError { get; set; } = null;
+
+
+    string? Category { get; set; } = null;
+
+    string? Country { get; set; }
+
+    string? Sort { get; set; }
+
+    private string? Keyword { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (RendererInfo.Name == "Static")
+        {
+            return;
+        }
+        else if (RendererInfo.Name == "WebAssembly")
+        {
+            await authenticate.CheckJwtTokenAsync();
+
+        }
+
+        Countries = getSelect.Get<Countries>();
+
+        Categories = getSelect.Get<Categories>();
+
+        await LoadInput();
+
+    }
+
+    protected void CategoryClicked(ChangeEventArgs e)
+    {
+        Category = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void CountryClicked(ChangeEventArgs e)
+    {
+        Country = e.Value == null ? null : e.Value.ToString();
+    }
+
+    protected void SortClicked(ChangeEventArgs e)
+    {
+        Sort = e.Value == null ? null : e.Value.ToString();
+    }
+
+    public string? Info { get; set; }
+
+
+    private async Task SetInfo(string info)
+    {
+
+        Info = info;
+
+        StateHasChanged();
+
+        await Task.Delay(5000);
+
+        Info = null;
+
+        StateHasChanged();
+
+    }
+
+
+    public async Task LoadMore(int type)
+    {
+        if (type == 0)
+            Input.Pointer--;
+        else if (type == 1)
+            Input.Pointer++;
+
+        if (Input.Pointer >= 0)
+        {
+            await LoadInput();
+        }
+
+    }
+
+    public async Task LoadInput()
+    {
+
+       
+        await JsRuntime.InvokeVoidAsync("OnScrollToTop", 0);
+
+        IsShowFilter = false;
+
+        HasInput = false;
+
+        InputError = null;
+
+
+        var url = "watchlists/all?";
+
+        if (!string.IsNullOrEmpty(Category) && Category != "-1")
+        {
+            Enum.TryParse(Category, out Categories category);
+
+            url = url + $"category={category}&";
+        }
+
+        if (!string.IsNullOrEmpty(Country) && Country != "-1")
+        {
+            Enum.TryParse(Country, out Countries country);
+
+            url = url + $"country={country}&";
+        }
+
+        if (!string.IsNullOrEmpty(Sort) && Sort != "-1")
+        {
+            Enum.TryParse(Sort, out SortTypes sort);
+
+            url = url + $"sort={sort}&";
+        }
+
+        if (!string.IsNullOrEmpty(Keyword))
+        {
+            url = url + $"keyword={Keyword}&";
+        }
+
+        if (Input != null && Input.Pointer > 0)
+        {
+            url = url + $"pointer={Input.Pointer}&size=5";
+        }
+        else
+        {
+            url = url + "size=6";
+        }
+
+
+        var result = await getWatchlists.GetAsync(url, CancelToken);
+
+        if (result.IsFailure)
+        {
+            InputError = result.Error ?? "Unknown server error";
+
+        }
+        else
+        {
+            Input = result.Value;
+        }
+
+
+        HasInput = true;
+
+    }
+
+    private async Task FollowWatchlist(WatchListSummary watchList, bool option)
+    {
+
+          if (!await authenticate.CheckJwtTokenAsync())
+        {
+            navigator.NavigateTo($"/login?returnUrl=/watchlists", false);
+        }
+
+        FollowWatchListRequest formData = new()
+            {
+                WatchListId = watchList.Id,
+                Option = option
+            };
+
+        var result = await followWatchList.PatchAsync("watchlists/follow", formData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            await SetInfo("Error: " + result.Error ?? "Unknown server error");
+
+            return;
+        }
+        else
+        {
+
+            watchList.IsFollowingWatchlist = option;
+
+            watchList.Followers = result.Value.Counts;
+
+            if (option)
+            {
+                await SetInfo("Watchlist Followed");
+
+            }
+            else
+            {
+                await SetInfo("Watchlist Unfollowed");
+
+            }
+
+        }
+    }
+
+}

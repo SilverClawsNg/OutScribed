@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OutScribed.Modules.Jail.Domain\OutScribed.Modules.Jail.Domain.csproj" />
+    <ProjectReference Include="..\OutScribed.SharedKernel\OutScribed.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,311 @@
+﻿@inject IApiPatchServices<PhotoResponse,UpdateThreadPhotoRequest> updateThread
+@inject NavigationManager navigator
+@inject ISelectServices getSelect
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateThreadPhotoForm">
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Update Thread
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+            else if (Progress == FormProgress.Close)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        Error occured retrieving saved thread. Refresh page.
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick='() => RemoveComponent()'>
+                            Close
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Updating Threads' Background Image
+                    </li>
+                    <li>
+                        The threads' background image is a pictorial representation of the
+                        threads' contents.
+                    </li>
+                    <li>
+                        Background photos should be optimally 1330px by 650px.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <div class="photo-preview">
+
+                    <label class="large">
+
+                        <InputFile OnChange="PhotoUploaded" />
+
+                        @if (PhotoUrl != null)
+                        {
+                            <img src="@PhotoUrl" />
+                        }
+                        else if (Component.ThreadDraft.PhotoUrlToString != null)
+                        {
+                            <img src="@Component.ThreadDraft.PhotoUrlToString" />
+                        }
+                        else
+                        {
+                            <div class="no-image large"></div>
+                        }
+
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public UpdateThreadPhotoRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+        private bool ShowHelp = false;
+
+
+    public string? PhotoBase64 { get; set; }
+
+    public string? PhotoUrl { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+        {
+                Id = Component.ThreadDraft.Id
+        };
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        Progress = FormProgress.Loading;
+
+        FormError = string.Empty;
+
+        if (PhotoBase64 == null)
+        {
+            FormError = "Photo cannot be null";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+
+        FormData.Base64String = PhotoBase64;
+
+        var result = await updateThread.PatchAsync("threads/update/photo", FormData, CancelToken);
+
+        if (result.IsFailure)
+        {
+            FormError = result.Error ?? "Unknown server error";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+        else
+        {
+
+            if (result.Value.PhotoUrl == null)
+            {
+                Progress = FormProgress.Close;
+            }
+            else
+            {
+                Component.ThreadDraft.PhotoUrl = result.Value.PhotoUrl;
+
+                Component.Info = "Photo Updated";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+
+    }
+
+    private async Task PhotoUploaded(InputFileChangeEventArgs e)
+    {
+
+
+        var file = e.File;
+
+        long maxFileSize = 1024 * 1024 * 3;
+
+        decimal number = (decimal)file.Size / (1024 * 1024);
+
+        var contentType = file.ContentType;
+
+        var extension = Path.GetExtension(file.Name);
+
+        if ((extension != ".jpeg" || contentType.ToLower() != "image/jpeg")
+              && (extension != ".jpg" || contentType.ToLower() != "image/jpeg")
+               && (extension != ".png" || contentType.ToLower() != "image/png"))
+        {
+
+            FormError = "Only JPG or PNG files are allowed";
+
+            Progress = FormProgress.Error;
+
+            return;
+        }
+        else if (number > 3)
+        {
+
+            FormError = "Uploaded files cannot exceed 3mb";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+
+        var buffer = new byte[file.Size];
+
+        await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
+
+        var imageBase64 = Convert.ToBase64String(buffer);
+
+        PhotoBase64 = imageBase64;
+
+        PhotoUrl = $"data:{contentType};base64,{imageBase64}";
+
+    }
+
+}

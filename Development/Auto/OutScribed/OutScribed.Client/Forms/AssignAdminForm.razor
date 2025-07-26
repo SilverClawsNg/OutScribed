@@ -1,0 +1,269 @@
+﻿@inject IApiPatchServices<bool,AssignAdminRequest> assignRole
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigator
+@inject IAuthenticationServices authenticate
+
+<EditForm Model=@FormData OnValidSubmit=@FormAction FormName="UpdateUserBioForm">
+
+    <DataAnnotationsValidator />
+
+    <div class="modal-header">
+
+        <div class="inner-modal-header">
+
+            <div class="modal-header-links">
+
+                <h1>
+                    Assign Role
+                </h1>
+
+            </div>
+
+            <div class="modal-header-menu">
+
+                <a class="help" href="#" @onclick:preventDefault="true" @onclick='(() => ShowHelp = !ShowHelp)'>?</a>
+
+                <button type="submit"></button>
+
+                <a class="@(Window ? "maximize" : "minimize")" href="#" @onclick:preventDefault="true" @onclick='(() => ExpandModal())'></a>
+
+                <a class="close" href="#" @onclick:preventDefault="true" @onclick='(() => RemoveComponent())'>X</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body">
+
+        <div class="inner-modal-body">
+
+            @if (Progress == FormProgress.Loading)
+            {
+                <div class="form-progress">
+
+                    <LoadingGif />
+
+                    <p class="progress-message">@FormMessage </p>
+
+                    <div class="progress-links">
+                        <a href="#" @onclick:preventDefault="true" @onclick="CancelSubmission">
+                            Cancel
+                        </a>
+                    </div>
+
+                </div>
+
+            }
+            else if (Progress == FormProgress.Error)
+            {
+                <div class="form-progress">
+
+                    <ErrorGif />
+
+                    <p class="progress-message">
+                        An error occured: <span class="error"> @FormError </span>
+                    </p>
+                    <div class="progress-links">
+
+                        <a href="#" @onclick:preventDefault="true" @onclick="() => Progress = FormProgress.None">
+                            Retry
+                        </a>
+                    </div>
+                </div>
+
+            }
+
+            <div class="@(ShowHelp ? "form-help active" : "form-help")">
+                <ul>
+                    <li>
+                        Assigning New Roles
+                    </li>
+                    <li>
+                        Roles are used to extend users' responsibilities on the platform.
+                    </li>
+                    <li>
+                        Newly registered users have the default role of <strong>None</strong>
+                        and can contribute threads and comments. Additionally, they can also
+                        rate, flag, or follow tales, threads, watchlists, and other users.
+                    </li>
+                    <li>
+                        <strong>Writers</strong> can create contribute tales while <strong>Checkers</strong>
+                        are tasked with confirming that tales has passed minimal legal culpability.
+                        <strong>Editors</strong> ensures that tales meet minimum quality standards for the 
+                        platform while <strong>Publishers</strong> are the last line of the laddar and approves
+                        a tale for publication.
+                    </li>
+                    <li>
+                        Roles can be easily assigned or re-assigned as need be.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="form-container">
+
+                <InputRadioGroup @bind-Value="FormData.Role">
+
+                    <fieldset class="alt">
+
+                        <div class="tick-option vertical">
+
+                            <p>
+                                <InputRadio Value="@(RoleTypes.None)" checked="@(Component.Admin.Role == RoleTypes.None ? true : null)" Id="@(RoleTypes.None)" />
+                                <label for="@RoleTypes.None"> None</label>
+                            </p>
+
+                            <p>
+                                <InputRadio Value="@(RoleTypes.Writer)" checked="@(Component.Admin.Role == RoleTypes.Writer ? true : null)" Id="@(RoleTypes.Writer)" />
+                                <label for="@RoleTypes.Writer">Writer</label>
+                            </p>
+
+                            <p>
+                                <InputRadio Value="@(RoleTypes.Checker)" checked="@(Component.Admin.Role == RoleTypes.Checker ? true : null)" Id="@(RoleTypes.Checker)" />
+                                <label for="@RoleTypes.Checker">Checker</label>
+                            </p>
+
+
+                            <p>
+                                <InputRadio Value="@(RoleTypes.Editor)" checked="@(Component.Admin.Role == RoleTypes.Editor ? true : null)" Id="@(RoleTypes.Editor)" />
+                                <label for="@RoleTypes.Editor">Editor</label>
+                            </p>
+
+                            <p>
+                                <InputRadio Value="@(RoleTypes.Publisher)" checked="@(Component.Admin.Role == RoleTypes.Publisher ? true : null)" Id="@(RoleTypes.Publisher)" />
+                                <label for="@RoleTypes.Publisher">Publisher</label>
+                            </p>
+
+                        </div>
+
+                        <label class="stay">Role</label>
+
+                    </fieldset>
+
+                </InputRadioGroup>
+
+                <ValidationMessage For="() => FormData.Role" />
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+
+@code {
+
+    [Parameter]
+    public ComponentParameters Component { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnRemoveComponent { get; set; }
+
+    private async void RemoveComponent() =>
+       await OnRemoveComponent.InvokeAsync(Component);
+
+    [Parameter]
+    public EventCallback<ComponentParameters> OnAddComponent { get; set; }
+
+
+    bool Window { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpandModal { get; set; }
+
+    private async Task ExpandModal()
+    {
+        Window = !Window;
+
+        await OnExpandModal.InvokeAsync();
+    }
+
+
+    [SupplyParameterFromForm]
+    public AssignAdminRequest FormData { get; set; } = default!;
+
+    FormProgress Progress { get; set; } = FormProgress.None;
+
+    string FormError { get; set; } = string.Empty;
+
+    string FormMessage { get; set; } = string.Empty;
+
+    private bool ShowHelp = false;
+
+
+    protected override void OnInitialized()
+    {
+
+        FormData = new()
+            {
+                AccountId = Component.Admin.Id,
+                Role = Component.Admin.Role
+            };
+
+    }
+
+    protected void CancelSubmission()
+    {
+        Cancel();
+
+        FormError = "Process has been canceled";
+
+        Progress = FormProgress.Error;
+    }
+
+    async Task FormAction(EditContext editContext)
+    {
+
+        if (!await authenticate.CheckJwtTokenAsync())
+        {
+
+            await OnAddComponent.InvokeAsync(new ComponentParameters() { ComponentType = ComponentTypes.LoginUser });
+
+            return;
+
+        }
+
+        if (editContext.Validate())
+        {
+
+            Progress = FormProgress.Loading;
+
+            FormError = string.Empty;
+
+            var result = await assignRole.PatchAsync("roles/assign", FormData, CancelToken);
+
+            if (result.IsFailure)
+            {
+                FormError = result.Error ?? "Unknown server error";
+
+                Progress = FormProgress.Error;
+
+                return;
+            }
+            else
+            {
+
+                Component.Admin.Role = FormData.Role;
+
+                Component.Info = "Role Assigned";
+
+                await OnRemoveComponent.InvokeAsync(Component);
+
+            }
+
+        }
+        else
+        {
+            FormError = "Form failed validation";
+
+            Progress = FormProgress.Error;
+
+            return;
+
+        }
+    }
+
+}
