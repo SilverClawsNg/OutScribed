@@ -65,11 +65,11 @@ This section provides a high-level summary of the project goals, scope, and key 
 
 This section provides a summary of the project architecture
 
-*src
-**  modules : (Folder) Write models for the modules
-	 - **Module Name** : (Folder)
-	 -- OutScribed.Modules.**ModuleName**.Application
-	 --- Features : (Folder)
+### src
+### modules : (Folder) Write models for the modules
+- [ ] _Module Name_ : (Folder)
+- [ ] OutScribed.Modules._ModuleName_.Application
+	- [ ] Features : (Folder)
 	 ---- **Feature Name** : (Folder) e.g. AddComment
 	 ----- **Feature Name**Endpoint : (Class) Uses FastEndpoint
 	 ----- **Feature Name**Request : (Class) Incoming request
