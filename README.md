@@ -48,7 +48,7 @@ This section provides a high-level summary of the project goals, scope, and key 
 * API Gateway: Ocelot or Yarp
 * Polly: Http calls and retries
 * Outbox pattern
-* Database-Level Full Text Search //
+* Database-Level Full Text Search 
 
 ### 1.3 Modules
 * Onboarding : Concerned with user pre-registration
@@ -59,9 +59,7 @@ This section provides a high-level summary of the project goals, scope, and key 
 * Tagging : Concerned with tagging
 * Jail : Concerned with rate limiting
 
----
-
-## 2. Project/Folder Architexture
+## 1.4. Project/Folder Architexture
 
 This section provides a summary of the project architecture
 
@@ -132,9 +130,13 @@ This section provides a summary of the project architecture
 
 - [x] tests
 
+## 1.5. Communication
+
+* 
+
 ---
 
-## 3. Write Model: Onboarding
+## 3. Onboarding Module
 
 This section provides description of the onboarding work flows
 
@@ -142,7 +144,7 @@ This section provides description of the onboarding work flows
 * Onboarding handles pre-registration for new users
 * It verifies a user through a verification token
 * After the pre-registration is completed, the onboarding entries are permanently deleted
-** Note: Can/should email address be verified to be valid & active?
+* Note: Can/should email address be verified to be valid & active?
 
 ### 3.2 Models
 - [x] TempUser (AggregateRoot)
@@ -176,7 +178,7 @@ This section provides description of the onboarding work flows
 * Creates a new temporary account, generates and returns a verification token
 
 #### 3.5.1 Request
-* EmailAddress (string) <!-- Email address from user --!>
+* EmailAddress (string)
 * IpAddress (string) <!-- From HttpRequest --!>
 
 #### 3.5.2 Response
@@ -207,7 +209,7 @@ This section provides description of the onboarding work flows
 * Ok
 
 #### 3.6.3 Validation
-* EmailAddress <!-- Not null. Not empty. 255.
+* EmailAddress <!-- Not null. Not empty. 255. --!>
 
 #### 3.6.4 Work flow
 * Receives request and performs validation then forwards to service
@@ -226,13 +228,13 @@ This section provides description of the onboarding work flows
 
 #### 3.7.1 Request
 * Id (Ulid)
-* IpAddress (string) <!-- From HttpRequest
+* Token (string)
 
 #### 3.7.2 Response
 * Ok
 
 #### 3.7.3 Validation
-* Id <!-- Not null. Not empty.
+* Id _Not null. Not empty._
 
 #### 3.7.4 Work flow
 * Receives request
@@ -241,7 +243,7 @@ This section provides description of the onboarding work flows
 * Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
 * Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes and throw new exception.
 * Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw new exception.
-* System compares the verification token, if false, it increments the VerificationAttempts and returns error to frontend.
+* Compare the verification token, if false, it increments the VerificationAttempts and returns error to frontend.
 * Else marks the IsVerified as true.
 * Returns request
 
@@ -286,6 +288,8 @@ This section provides description of the identity work flows.
 		 - [ ] AssignedAt (DateTime) <!-- Timestamp role was assigned --!>
 		 - [ ] IsActive (bool) <!-- If true, role can perform admin activities. Once assigned, admin roles are not removed. ***Is this best policy*** --!>
 		 - [ ] LastUpdated (DateTime) <!-- Last admin was deactivated/activated. Defaults to AssignedAt --!>
+   		 - [ ] AssignedBy (Ulid) <!-- Id of Admin who assigned role --!>
+      	 - [ ] LastUpdatedBy (Ulid) <!-- Id of admin who performed last update. Defaults to AssignedBy --!>
 	- [x] LoginHistory (Entity) <!-- Holds info about user's logins e.g. IpAddress, etc. Account can have 0 or multiple LoginHistory --!>
 		 - [ ] LoggedAt (DateTime) <!-- Timestamp of login --!>
 		 - [ ] IpAddress (string) <!-- IpAddress used in login --!>
@@ -296,6 +300,7 @@ This section provides description of the identity work flows.
 		 - [ ] ContactType (enum) <!-- Users can only use pre-defined contact type e.g. Facebook, EmailAddress, etc. --!>
 	- [x] Notification (Entity) <!-- Holds info about user's activity logs e.g. NotificationType, etc. Account can have 0 or multiple Notification. --!>
 		 - [ ] HappendedAt (DateTime) <!-- Timestamp of activity --!>
+   		 - [ ] CausedBy (Ulid) <!-- Id of principal actor --!>
 		 - [ ] HasRead (bool) <!-- If true, notification has been read --!>
 		 - [ ] Text (string) <!-- Details of notification --!>
 		 - [ ] ContactType (enum) <!-- Users can only use pre-defined contact type e.g. Facebook, EmailAddress, etc. --!>
@@ -304,6 +309,9 @@ This section provides description of the identity work flows.
 		 - [ ] Address (string) <!-- Writer's address information --!>
 		 - [ ] AppliedAt (DateTime) <!-- Timestamp of application to become writer --!>
 		 - [ ] ApprovedAt (DateTime) <!-- Timestamp of approval to become writer --!>
+   		 - [ ] LastUpdatedAt (DateTime) <!-- Timestamp of last update --!>
+      	 - [ ] ApprovedBy (Ulid) <!-- Id of Admin who approved application --!>
+      	 - [ ] LastUpdatedBy (Ulid) <!-- Id of Admin with last update --!>
 		 - [ ] IsActive (bool) <!-- If true, has privilege to publish tale --!>
 		 - [ ] Country (enum) <!-- Country of origin/location --!>
 		 - [ ] Application (string) <!-- Location of writer's application in Adobe PDF on file. Storage is on DigitalOcean Space using AW3 SDK --!>
@@ -315,6 +323,8 @@ This section provides description of the identity work flows.
 * There is a limit of 5 verification attempts within 10 minutes span
 * Verification tokens cannot be sent to the same IpAddress within a 10 minutes span
 * Life span of a verification token is 10 minutes
+* A user can only hold a single role
+* 
 
 ### 4.4 Commands Summary
 * CreateAccount <!-- Creates new account --!>
@@ -389,7 +399,7 @@ This section provides description of the identity work flows.
 
 #### 4.6.4 Work flow
 * Receives request
-* Gets Account by Username. If no record found, throws an exception.
+* Gets Account by Username. If null, throws an exception.
 * Compares Passwords. If false, throws an exception.
 * Create and attach a new login history
 * Create and attach a new Notification of enum:AccountCreated
@@ -405,7 +415,7 @@ This section provides description of the identity work flows.
 * Id (Ulid)
 
 #### 4.7.2 Response
-* 
+* Ok
   
 #### 4.7.3 Validation
 
@@ -439,7 +449,7 @@ This section provides description of the identity work flows.
 
 #### 4.8.4 Work flow
 * Receives request
-* Gets Account by Id. If no record found, returns response
+* Gets Account by Id. If null, returns response
 * If PhotoBase64 is not null, Generate a new Filename, Save file to DigitalOcean Space
 * Update Title, Bio, IsAnnonymous, EmailAddress where not null
 * Create and attach a new Notification of enum:ProfileUpdated
@@ -466,7 +476,7 @@ This section provides description of the identity work flows.
 
 #### 4.9.4 Work flow
 * Receives request
-* Gets Account by Id. If no record found, returns response
+* Gets Account by Id. If null, returns response
 * Update contact if already exists else create and attach a new contact
 * Create and attach a new Notification of enum:ContactUpdated
 * Save Changes
@@ -501,7 +511,6 @@ This section provides description of the identity work flows.
 
 #### 4.11.1 Request
 * Id (Ulid) 
-* IpAddress (string) <!-- From HttpRequest
 
 #### 4.11.2 Response
 * Ok
@@ -511,7 +520,7 @@ This section provides description of the identity work flows.
 
 #### 4.11.4 Work flow
 * Receives request
-* Get Account by email address. If it does not exist, throw an exception.
+* Get Account by email address. If null, throw an exception.
 * Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw an exception.
 * Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes, and throw an exception.
 * Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw an exception.
@@ -519,3 +528,199 @@ This section provides description of the identity work flows.
 * Schedules an email with verification token
 * Save changes
 * Returns response
+
+### 4.12 ResetPassword
+* Resets a password
+  
+#### 4.12.1 Request
+* Id (Ulid)
+* Password (string)
+* Token (string)
+
+#### 4.12.2 Response
+* Ok
+
+#### 4.12.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* Password <!-- Not null. Not empty. Min: 8 --!>
+* Token <!-- Not null. Not empty. Size: 6. --!>
+
+#### 4.12.4 Work flow
+* Receives request
+* Gets Account exists with Id. If null, throw an exception.
+* Compares Token. If false, throw an exception.
+* Hash password, generate Salt and update.
+* Save changes
+* Returns request
+
+### 4.13 UpdatePassword
+* Changes an existing password
+  
+#### 4.13.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* OldPassword (string)
+* NewPassword (string)
+
+#### 4.13.2 Response
+* Ok
+
+#### 4.13.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* OldPassword <!-- Not null. Not empty. Min: 8 --!>
+* NewPassword <!-- Not null. Not empty. Min: 8 --!>
+
+#### 4.13.4 Work flow
+* Receives request
+* Gets Account with Id. If null, throw an exception.
+* Compares old password. If false, throw an exception.
+* Hash new password, generate Salt and update.
+* Save changes
+* Returns request
+
+### 4.14 ApplyAsWriter
+* Accepts an application from a registered user for privileges to create Tales.
+  
+#### 4.14.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* Country (enum)
+* ApplicationBase64String (string) <!-- Adobe PDF file --!>
+
+#### 4.14.2 Response
+* Ok
+
+#### 4.14.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* Country <!-- Not null. IsEnum. --!>
+* ApplicationBase64String <!-- Not null. Not empty. --!>
+
+#### 4.14.4 Work flow
+* Receives request
+* Gets Account exists with Id. If null, throw an exception.
+* Checks if Writer entity is already attached to account. If true, throws an exception.
+* Generate a new Filename, Save ApplicationBase64String to DigitalOcean Space
+* Creates and attaches a new Writer emtity.
+* Save changes
+* Returns request
+
+### 4.15 ApproveWriter
+* Approves a registered user's application for Writer privileges
+* Requires an Admin role of type: SuperAdmin or Publisher to perform this operation
+  
+#### 4.15.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* ApplicantId (Ulid)
+
+#### 4.15.2 Response
+* Ok
+
+#### 4.15.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* ApplicantId <!-- Not null. Not empty. --!>
+
+#### 4.15.4 Work flow
+* Receives request
+* Gets Account with ApplicantId. If null, throw an exception.
+* Checks if Writer entity is attached to account. If false, throws an exception.
+* Update Writer.
+* Save changes
+* Returns request
+
+### 4.16 UpdateWriter
+* Updates a Writer privilege i.e. toggles IsActive
+* Requires an Admin role of type: SuperAdmin or Publisher to perform this operation
+  
+#### 4.16.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* ApplicantId (Ulid)
+* IsActive (bool)
+
+#### 4.16.2 Response
+* Ok
+
+#### 4.16.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* ApplicantId <!-- Not null. Not empty. --!>
+
+#### 4.16.4 Work flow
+* Receives request
+* Gets Account with ApplicantId. If null, throw an exception.
+* Checks if Writer entity is attached to account. If false, throws an exception.
+* Update Writer emtity.
+* Save changes
+* Returns request
+
+### 4.17 AssignRole
+* Assigns an admin role to a registered user
+* Requires an Admin role of type: SuperAdmin to perform this operation
+  
+#### 4.17.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* AssigneeId (Ulid)
+* RoleType (enum)
+
+#### 4.17.2 Response
+* Ok
+
+#### 4.17.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* AssigneeId <!-- Not null. Not empty. --!>
+* RoleType <!-- Not null. IsEnum --!>
+
+#### 4.17.4 Work flow
+* Receives request
+* Gets Account with AssigneeId. If null, throw an exception.
+* Checks if Admin entity is already attached. If true, throws an exception.
+* Creates an attaches Admin.
+* Save changes
+* Returns request
+
+### 4.18 UpdateRole
+* Updates an admin role type
+* Requires an Admin role of type: SuperAdmin to perform this operation
+  
+#### 4.18.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* AdminId (Ulid)
+* RoleType (enum)
+
+#### 4.18.2 Response
+* Ok
+
+#### 4.18.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* AdimId <!-- Not null. Not empty. --!>
+* RoleType <!-- Not null. IsEnum --!>
+
+#### 4.18.4 Work flow
+* Receives request
+* Gets Account with AdminId. If null, throw an exception.
+* Checks if Admin entity is attached. If false, throws an exception.
+* Update Admin.
+* Save changes
+* Returns request
+
+### 4.19 UpdateAdmin
+* Updates an admin's privilege i.e. toggles IsActive
+* Requires an Admin role of type: SuperAdmin to perform this operation
+  
+#### 4.19.1 Request
+* Id (Ulid) <!-- From HttpContext -- !>
+* AdminId (Ulid)
+* IsActive (bool)
+
+#### 4.19.2 Response
+* Ok
+
+#### 4.19.3 Validation
+* Id <!-- Not null. Not empty. --!>
+* AssigneeId <!-- Not null. Not empty. --!>
+* RoleType <!-- Not null. IsEnum --!>
+
+#### 4.19.4 Work flow
+* Receives request
+* Gets Account with Id. If null, throw an exception.
+* Checks if Admin entity is attached. If false, throws an exception.
+* Update Admin.
+* Save changes
+* Returns request
+
