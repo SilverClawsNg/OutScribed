@@ -10,7 +10,7 @@ This document serves as the central repository for the backend architecture, dom
 
 ---
 
-## 1. Project Overview
+## 1.0 Project Overview
 
 This section provides a high-level summary of the project goals, scope, and key components.
 
@@ -130,11 +130,81 @@ This section provides a summary of the project architecture
 
 - [x] tests
 
-## 1.5. Communication
+## 1.5. Patterns
 
-* 
+* This section discusses patterns used in this application
+
+### 1.5.1 Specification Pattern
+
+* The Specification Pattern is generally considered the most aligned DDD approach for encapsulating querying logic that is relevant to the domain.
+* A "Specification" is a self-contained query definition.
+- [x] Process
+	- [ ] Define a generic ISpecification<T> interface.
+	- [ ] Define a base specification abstract class.
+ 	- [ ] Define a specification evaluator which translates your domain-specific specification object into an executable LINQ query that Entity Framework Core (or any other ORM supporting IQueryable) can understand and translate into SQL.
+  	- [ ] Define specification for domain queries as needed
 
 ---
+
+## 2.0 Jail Module
+
+This section provides description of the ipaddress jailing work flows
+
+### 2.1 Description
+* Enforces rate limiting
+* Temporarily locks an Ip Address suspected to be involved in an abuse/attack
+* Determines when an Ip Address should be locked permanently e.g. number of repeated violations
+* Provides mechanism for manually unlocking an Ip Address e.g. based on complaint to Customer Services
+
+### 2.2 Models
+- [x] IpAddress (AggregateRoot)
+	- [ ] Id (Ulid)
+ 	- [ ] Value (string) <!-- string representing Ip Address --!>
+  	- [ ] CurrentJailReleaseTime (DateTime) <!-- Timespan before released from jail. If permanent ban then DateTime.Max --!>
+  	- [ ] IsPermanentlyBanned (DateTime)
+  	- [x] JailHistory (Entity) <!-- Keeps record of jails for Ip Address. Can be 1 or multiple --!>
+	  	- [ ] JailedAt (DateTime) <!-- Timespan at jail time --!>
+	  	- [ ] JailReason (enum) <!-- Reason for jail --!>
+
+### 2.3 Business Rules
+* Ip Address involved in up to 5 violations within a 24 hours period is permanently jailed
+
+### 2.4 External Commands Summary
+* ReleaseIpAddress <!-- Manually releases a jailed IpAddress.  --!>
+
+### 2.5 ReleaseIpAddress
+* Creates a new temporary account, generates and returns a verification token
+* Also applies to permanently banned Ip Addresses.
+
+#### 2.5.1 Request
+* Id (Ulid)
+
+#### 2.5.2 Response
+* Ok
+
+#### 2.5.3 Validation
+* Id <!-- Not null. --!>
+
+#### 2.5.4 Work flow
+* Receives request
+* Gets IpAddress by Id, If null, throws an exception.
+* Resets CurrentJailReleaseTime to null and IsPermanentlyJailed to false
+* Save changes
+* Return response
+
+### 2.6 Internal Services Summary
+* GetTagId <!-- Creates and/or returns tag Id --!>
+
+### 5.5 GetTagId
+* Creates a new tag from a name, if it does not exist
+ 
+#### 5.5.1 Work flow
+* Receives a name (string)
+* Gets Tag with name.
+* If it does not exist, slugify the name and create a new tag
+* Returns the Id of the tag
+
+--
 
 ## 3. Onboarding Module
 
@@ -724,3 +794,33 @@ This section provides description of the identity work flows.
 * Save changes
 * Returns request
 
+## 5.0 Tagging Module
+
+This section provides description of the tagging work flows. 
+
+### 5.1 Description
+* Tags are used to categorize similar contents such as Tales, Watchlists, and Insights
+* Individual contents only holds a logical Id for the tags while tagging holds the only definition
+
+### 5.2 Models
+- [x] Tag  (AggregateRoot)
+	- [ ] Id (Ulid)
+	- [ ] Name (string)
+ 	- [ ] CreatedAt (DateTime)
+  	- [ ] Slug (DateTime) <!-- Generated from the name --!>
+  
+### 5.3 Business rules
+* Duplicate tag names/slugs are not allowed
+ 
+### 5.4 Internal Services Summary
+* GetTagId <!-- Creates and/or returns tag Id --!>
+
+### 5.5 GetTagId
+* Creates a new tag from a name, if it does not exist
+* Called by other Modules trying to create a new content tag
+ 
+#### 5.5.1 Work flow
+* Receives a name (string)
+* Gets Tag with name.
+* If it does not exist, slugify the name and create a new tag
+* Returns the Id of the tag
