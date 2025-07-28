@@ -327,7 +327,7 @@ This section provides description of the onboarding work flows
 * Ok
 
 #### 3.7.3 Validation
-* Id _Not null. Not empty._
+* Id <!-- Not null. Not empty. --!>
 
 #### 3.7.4 Work flow
 * Receives and validates request
@@ -342,7 +342,7 @@ This section provides description of the onboarding work flows
 
 ---
 
-## 4. Write Model: Identity
+## 4. Identity Module
 
 This section provides description of the identity work flows. 
 
@@ -417,7 +417,6 @@ This section provides description of the identity work flows.
 * Verification tokens cannot be sent to the same IpAddress within a 10 minutes span
 * Life span of a verification token is 10 minutes
 * A user can only hold a single role
-* 
 
 ### 4.4 External Commands
 * CreateAccount <!-- Creates new account --!>
@@ -434,6 +433,8 @@ This section provides description of the identity work flows.
 * UpdateWriter <!-- Updates a writer's privilege --!>
 * AssignRole <!-- Assigns a role to a user --!>
 * UpdateRole <!-- Updates a user's role e.g. deactivate role or change role --!>
+* FollowAccount <!-- Follows an account --!>
+* UnfollowAccount <!-- Unfollows an account --!>
 
 ### 4.5 CreateAccount
 * Creates a new main account. 
@@ -817,6 +818,53 @@ This section provides description of the identity work flows.
 * Save changes
 * Returns request
 
+### 4.20 FollowAccount
+* Follows an account for notifications on activities involving the account
+* A registered user can only follow an account once i.e. duplicates are not allowed
+* This process is reversible
+
+#### 4.20.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 4.20.2 Response
+* Ok
+
+#### 4.20.3 Validation
+* Id <!-- Not null. --!>
+
+#### 4.20.4 Work flow
+* Receives and validates request
+* Gets Account by Id. If null, throw exception
+* Creates an AccountFollow and attaches to account
+* Save changes
+* Publish event: AccountFollowed
+* Returns response
+
+### 4.21 UnfollowAccount
+* Unfollows an account
+
+#### 4.21.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 4.21.2 Response
+* Ok
+
+#### 4.21.3 Validation
+* Id <!-- Not null. --!>
+
+#### 4.21.4 Work flow
+* Receives and validates request
+* Gets Account by Id. If null, throw exception
+* Gets the attached AccountFollow. If null, throw exception
+* Detach the AccountFollow
+* Save changes
+* Publish event: AccountUnfollowed
+* Returns response
+
+--
+
 ## 5.0 Tagging Module
 
 This section provides description of the tagging work flows. 
@@ -863,16 +911,18 @@ This section provides description of the tagging work flows.
 * Save changes
 * Else decrements counter
 
+--
+
 ## 6.0 Publishing Module
 
 This section provides description of the publishing work flows. 
 
-### 5.1 Description
+### 6.1 Description
 * Tales are the primary feature of the application
 * Tales are paid short stories which follows a unique writing pattern
 * Tales can be tagged, commented on, shared, flagged, follwoed, and rated.
 
-### 5.2 Tale Lifecycle
+### 6.2 Tale Lifecycle
 - [ ] Creation <!-- Tales are created by registered users with Writer privilege. At this stage, the tale is only visible to its creator. enum:Created --!>
 - [x] Updating <!-- Attributes of tale such as summary, photo, tags, text, etc, are added or updated.  --!>
 	- [ ] Post-Creation <!-- Tales can be updated after creation --!>
@@ -898,7 +948,7 @@ This section provides description of the publishing work flows.
   	- [ ] Rejected by Publisher <!-- Tales can be rejected by a publisher and progress truncated. enum:RejectedByPublsiher --!>
      
    
-### 5.3 Models
+### 6.3 Models
 - [x] Tale  (AggregateRoot)
 	- [ ] Id (Ulid)
 	- [ ] Title (string)
@@ -947,14 +997,14 @@ This section provides description of the publishing work flows.
 	  	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
 
       
-### 5.3 Business rules
+### 6.3 Business rules
 * Duplicate tag names/slugs are not allowed
 * Users are only allowed to rate, flag, follow, or share a tale only once
 * Users can comment or share a tale as many times as they wish
 * Rating, flagging, sharing, and commenting are irreversible
-* A comment can be edited only within 20 minutes of creating it
+* A comment can be edited or remove by its creator if it has received no rating
  
-### 5.4 External Commands
+### 6.4 External Commands
 * CreateTale <!-- Creates a new tale --!>
 * UpdateTaleBasic <!-- Updates the basic details of a tale --!>
 * UpdateTaleSummary <!-- Updates summary of a tale --!>
@@ -969,53 +1019,56 @@ This section provides description of the publishing work flows.
 * FollowTale <!-- Follows a tale for updates --!>
 * UnfollowTale <!-- Unfollows a tale --!>
 * RateTale <!-- Rates a tale --!>
-* AddComment <!-- Adds a new comment to a tale --!>
-* AddReply <!-- Adds a reply to a comment on a tale --!>
-* RateComment <!-- Rates a tale comment --!>
-* FlagComment <!-- Flags a tale comment --!>
+* AddTaleComment <!-- Adds a new comment to a tale --!>
+* AddTaleReply <!-- Adds a reply to a comment on a tale --!>
+* RateTaleComment <!-- Rates a tale comment --!>
+* FlagTaleComment <!-- Flags a tale comment --!>
+* UpdateTaleComment <!-- Updates a tale comment --!>
+* RemoveTaleComment <!-- Removes a tale comment --!>
 
-### 5.5 CreateTale
+### 6.5 CreateTale
 * Creates a new tale with the basics i.e. a title and category
 * Creating tales requires registered users with Writer privilege
 
-#### 5.5.1 Request
+#### 6.5.1 Request
 * Title (string)
 * Category (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.5.2 Response
+#### 6.5.2 Response
 * Id (Ulid) <!-- Id of newly created tale --!>
 * CreatedAt (DateTime)
 
-#### 5.5.3 Validation
+#### 6.5.3 Validation
 * Title <!-- Not null. Not empty. 128. --!>
 * Category <!-- Not null. IsInEnum. --!>
 
-#### 5.5.4 Work flow
+#### 6.5.4 Work flow
 * Receives and validates request
 * Slugifies title and creates a new tale
 * Save changes
 * Publish event: TaleCreated
 * Returns response
 
-### 5.6 UpdateTaleBasics
+### 6.6 UpdateTaleBasics
 * Updates the basics of a tale i.e. a title and category
+* Basic details of published tales are no longer editable
 
-#### 5.6.1 Request
+#### 6.6.1 Request
 * Id (Ulid)
 * Title (string)
 * Category (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.6.2 Response
+#### 6.6.2 Response
 * Ok
 
-#### 5.6.3 Validation
+#### 6.6.3 Validation
 * Id <!-- Not null. --!>
 * Title <!-- Not null. Not empty. 128. --!>
 * Category <!-- Not null. IsInEnum. --!>
 
-#### 5.6.4 Work flow
+#### 6.6.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
 * Slugifies title and updates tale
@@ -1023,22 +1076,23 @@ This section provides description of the publishing work flows.
 * Publish event: TaleUpdated
 * Returns response
 
-### 5.7 UpdateTaleSummary
+### 6.7 UpdateTaleSummary
 * Updates the summary of a tale
+* Summaries of published tales are no longer editable
 
-#### 5.7.1 Request
+#### 6.7.1 Request
 * Id (Ulid)
 * Summary (string)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.7.2 Response
+#### 6.7.2 Response
 * Ok
 
-#### 5.7.3 Validation
+#### 6.7.3 Validation
 * Id <!-- Not null. --!>
 * Summary <!-- Not null. Not empty. 512. --!>
 
-#### 5.7.4 Work flow
+#### 6.7.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
 * Updates tale
@@ -1046,22 +1100,23 @@ This section provides description of the publishing work flows.
 * Publish event: TaleUpdated
 * Returns response
 
-### 5.8 UpdateTaleText
+### 6.8 UpdateTaleText
 * Updates the text of a tale
+* Text of published tales are no longer editable
 
-#### 5.8.1 Request
+#### 6.8.1 Request
 * Id (Ulid)
 * Text (string)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.8.2 Response
+#### 6.8.2 Response
 * Ok
 
-#### 5.8.3 Validation
+#### 6.8.3 Validation
 * Id <!-- Not null. --!>
-* Summary <!-- Not null. Not empty. 65535. --!>
+* Text <!-- Not null. Not empty. 65535. --!>
 
-#### 5.8.4 Work flow
+#### 6.8.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
 * Cleans up Text which contains Html content, and updates tale
@@ -1069,22 +1124,23 @@ This section provides description of the publishing work flows.
 * Publish event: TaleUpdated
 * Returns response
 
-### 5.9 UpdateTalePhoto
+### 6.9 UpdateTalePhoto
 * Updates the photo of a tale
+* Photos of published tales are no longer editable
 
-#### 5.9.1 Request
+#### 6.9.1 Request
 * Id (Ulid)
 * PhotoBase64String (string)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.8.2 Response
+#### 6.9.2 Response
 * Ok
 
-#### 5.8.3 Validation
+#### 6.9.3 Validation
 * Id <!-- Not null. --!>
 * PhotoBase64String <!-- Not null. Not empty. --!>
 
-#### 5.8.4 Work flow
+#### 6.9.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
 * Creates a thumbnail and save both files to DigitalOcean Space then update tale
@@ -1092,22 +1148,23 @@ This section provides description of the publishing work flows.
 * Publish event: TaleUpdated
 * Returns response
 
-### 5.10 UpdateTaleCountry
+### 6.10 UpdateTaleCountry
 * Updates the country of a tale
+* Country of published tales are no longer editable
 
-#### 5.10.1 Request
+#### 6.10.1 Request
 * Id (Ulid)
 * Country (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.10.2 Response
+#### 6.10.2 Response
 * Ok
 
-#### 5.10.3 Validation
+#### 6.10.3 Validation
 * Id <!-- Not null. --!>
 * Country <!-- Not null. IsInEnum. --!>
 
-#### 5.10.4 Work flow
+#### 6.10.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
 * Updates tale
@@ -1115,7 +1172,56 @@ This section provides description of the publishing work flows.
 * Publish event: TaleUpdated
 * Returns response
 
-### 5.11 UpdateTaleStatus
+### 6.11 AddTaleTag
+* Adds a new tag to a tale
+
+#### 6.11.1 Request
+* Id (Ulid)
+* Name (string) <!-- Name of tag --!>
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 6.11.2 Response
+* Ok
+
+#### 6.11.3 Validation
+* Id <!-- Not null. --!>
+* Name <!-- Not null. Not empty. 24. --!>
+
+#### 6.11.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Calls an internal service to register tag and get its Id
+* Creates a new TaleTag and attaches to tale
+* Updates tale
+* Save changes
+* Publish event: TaleUpdated, TagAdded
+* Returns response
+
+### 6.12 RemoveTaleTag
+* Removes existing tag from tale
+
+#### 6.12.1 Request
+* Id (Ulid)
+* TagId (Ulid) <!-- Id of tag --!>
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 6.12.2 Response
+* Ok
+
+#### 6.12.3 Validation
+* Id <!-- Not null. --!>
+* TagId <!-- Not null. --!>
+
+#### 6.12.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Gets TaleTag by TagId. If null, throw exception
+* Updates tale
+* Save changes
+* Publish event: TaleUpdated, TagRemoved
+* Returns response
+
+### 6.13 UpdateTaleStatus
 * Updates the text of a tale
 * Handles the stages of a tale's lifecycle from submission to publication
 * Different privileges are required for each update of a tale's status
@@ -1126,19 +1232,19 @@ This section provides description of the publishing work flows.
 * Events thrown also reflects the status been updated
 * If status is Published, tale must already have a title, category, summary, photo, and text
 
-#### 5.11.1 Request
+#### 6.13.1 Request
 * Id (Ulid)
 * TaleStatus (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.11.2 Response
+#### 6.13.2 Response
 * Ok
 
-#### 5.11.3 Validation
+#### 6.13.3 Validation
 * Id <!-- Not null. --!>
 * TaleStatus <!-- Not null. IsInEnum. --!>
 
-#### 5.11.4 Work flow
+#### 6.13.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
 * Updates tale
@@ -1146,84 +1252,930 @@ This section provides description of the publishing work flows.
 * Publish event based on status
 * Returns response
 
-### 5.12 RateTale
+### 6.14 RateTale
 * Rates a tale with a pre-defined type
 * Any registered user is allowed to rate a tale
 * A registered user can only rate a specific tale once i.e. duplicates are not allowed
 * This process is irreversible
 
-#### 5.12.1 Request
+#### 6.14.1 Request
 * Id (Ulid)
 * RateType (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.12.2 Response
+#### 6.14.2 Response
 * Ok
 
-#### 5.12.3 Validation
+#### 6.14.3 Validation
 * Id <!-- Not null. --!>
 * RateType <!-- Not null. IsInEnum. --!>
 
-#### 5.12.4 Work flow
+#### 6.14.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
-* Updates tale
+* Creates a TaleRating and attaches to tale
 * Save changes
 * Publish event: TaleRated
 * Returns response
 
-### 5.13 FlagTale
+### 6.15 FlagTale
 * Flags a tale with a pre-defined type
 * Any registered user is allowed to flag a tale
 * A registered user can only flag a specific tale once i.e. duplicates are not allowed
 * This process is irreversible
 
-#### 5.13.1 Request
+#### 6.15.1 Request
 * Id (Ulid)
 * FlagType (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
-#### 5.13.2 Response
+#### 6.15.2 Response
 * Ok
 
-#### 5.13.3 Validation
+#### 6.15.3 Validation
 * Id <!-- Not null. --!>
 * FlagType <!-- Not null. IsInEnum. --!>
 
-#### 5.13.4 Work flow
+#### 6.15.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, throw exception.
-* Updates tale
+* Creates a TaleFlag and attaches to tale
 * Save changes
 * Publish event: TaleFlagged
 * Returns response
 
-### 5.14 ShareTale
+### 6.16 ShareTale
 * Records details of a tale sharing on other social networks
 * Any user is allowed to share a tale as many times as possible
 * This process is expected to fail gracefully 
 
-#### 5.14.1 Request
+#### 6.16.1 Request
 * Id (Ulid)
 * ContactType (enum)
 * Handle (string)
 * AccountId (Ulid) <!-- From HttpContext. Not required --!>
 
-#### 5.14.2 Response
+#### 6.16.2 Response
 * Ok
 
-#### 5.14.3 Validation
+#### 6.16.3 Validation
 * Id <!-- Not null. --!>
 * ContactType <!-- Not null. IsInEnum. --!>
 * Handle <!-- Not null. Not empty. 255. --!>
 
-#### 5.14.4 Work flow
+#### 6.16.4 Work flow
 * Receives and validates request
 * Gets Tale by Id. If null, return response
-* Updates tale
+* Creates a TaleShare and attaches to tale
 * Save changes
 * Publish event: TaleShared
 * Returns response
+
+### 6.17 FollowTale
+* Follows a tale for notifications on activities involving the tale
+* A registered user can only follow a tale once i.e. duplicates are not allowed
+* This process is reversible
+
+#### 6.17.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 6.17.2 Response
+* Ok
+
+#### 6.17.3 Validation
+* Id <!-- Not null. --!>
+
+#### 6.17.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Creates a TaleFollow and attaches to tale
+* Save changes
+* Publish event: TaleFollowed
+* Returns response
+
+### 6.17 UnfollowTale
+* Unfollows a tale
+
+#### 6.17.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 6.17.2 Response
+* Ok
+
+#### 6.17.3 Validation
+* Id <!-- Not null. --!>
+
+#### 6.17.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Gets the attached TaleFollow. If null, throw exception
+* Detach the TaleFollow
+* Save changes
+* Publish event: TaleUnfollowed
+* Returns response
+
+### 6.18 AddTaleComment
+* Adds a comment to a tale
+* Registered users can add as many comments as they wish to a tale
+
+#### 6.18.1 Request
+* Id (Ulid)
+* Text (string)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 6.18.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 6.18.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 6.18.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Cleans text which contains Html content, create a new TaleComment and attaches to tale
+* Save changes
+* Publish event: TaleCommented
+* Returns response
+
+### 6.19 AddTaleReply
+* Adds a comment to a tale
+* Registered users can add as many comments as they wish to a tale
+
+#### 6.19.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 6.19.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 6.19.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 6.19.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains Html content, creates TaleComment and attach to Comment and tale
+* Save changes
+* Publish event: TaleCommentReplied
+* Returns response
+
+### 6.20 UpdateComment
+* Updates text of a comment 
+* A comment with any rating can no longer be updated
+
+#### 6.20.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 6.20.2 Response
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 6.20.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 6.20.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains html content and updates comment
+* Save changes
+* Publish event: TaleCommentUpdated
+* Returns response
+
+### 6.21 RemoveComment
+* Removes an existing comment
+* A comment with any rating or replies can no longer be removed except with admin privilege
+
+#### 6.21.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 6.21.2 Response
+* Ok
+
+#### 6.21.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+
+#### 6.21.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Detaches comment
+* Save changes
+* Publish event: TaleCommentRemoved
+* Returns response
+
+### 6.22 RateTaleComment
+* Rates a tale comment with a pre-defined type
+* Any registered user is allowed to rate a tale comment
+* A registered user can only rate a specific tale comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 6.22.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* RateType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 6.22.2 Response
+* Ok
+
+#### 6.22.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* RateType <!-- Not null. IsInEnum. --!>
+
+#### 6.22.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception
+* Gets comment by Id. If null, throw exception
+* Creates RateTaleComment and attaches to comment
+* Save changes
+* Publish event: TaleCommentRated
+* Returns response
+
+### 6.23 FlagTaleComment
+* Flags a tale comment with a pre-defined type
+* Any registered user is allowed to flag a tale comment
+* A registered user can only flag a specific tale comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 6.23.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 6.23.2 Response
+* Ok
+
+#### 6.23.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 6.23.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Gets a comment by Id. If null, throw exception
+* Creates a TaleCommentFlag and attaches to comment
+* Save changes
+* Publish event: TaleCommentFlagged
+* Returns response
+
+-- 
+
+## 7.0 Analysis Module
+
+This section provides description of the analysis work flows. 
+
+### 7.1 Description
+* Insights are elaborate responses to tales and are used by its creators to raise issues that may have arisen from a tale
+* Insights cannot be created independently of a tale
+* Any registered user can create an insight i.e. no special privilege is required
+* Insights are created as drafts and only privately viewed until their creator decides to take them online
+* Once online, an insight can no longer be hidden
+* Insights can be rated, flagged, commented on, shared, and tagged
+* An insight can be updated as long as it does not have any rating, shares, and comments
+ 
+### 7.2 Models
+- [x] Insight  (AggregateRoot)
+	- [ ] Id (Ulid)
+	- [ ] Title (string)
+ 	- [ ] TaleId (Ulid) <!-- Association with tale --!> 
+ 	- [ ] CreatedAt (DateTime)
+  	- [ ] Slug (string) <!-- Genrated from the title --!> 
+  	- [ ] Summary (string)
+  	- [ ] Text (string)
+  	- [ ] Photo (string) <!-- File name of photo on DigitalOcean Space --!>
+  	- [ ] CreatorId (Ulid)
+  	- [ ] Category (enum) <!-- optional --!>
+  	- [ ] Country (enum)
+  	- [ ] IsOnline (bool) <!-- If true, Insight can be publicly viewed --!>
+  	- [x] Tag (Entity) <!-- Information about attached tags. 0 or multiple --!>
+  		- [ ] Id (Ulid) <!-- Id of Tag. --!>
+  	 	- [ ] InsightId (Ulid) <!-- Association with Insight --!>
+  	 	- [ ] TaggedAt (DateTime) 
+  	- [x] Share (Entity) <!-- information about share history of insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] SharedAt (DateTime)
+	  	- [ ] SharerId (Ulid)
+	  	- [ ] ContactType (enum) <!-- Media type e.g. Facebook --!>
+	  	- [ ] InsightId (Ulid) <!-- Association with Insight --!>
+	  	- [ ] Handle (string) <!-- Contact text e.g. mike@yahoo.com --!>
+  	- [x] Flag (Entity) <!-- information about flag history of insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] FlaggedAt (DateTime)
+	  	- [ ] FlaggerId (Ulid)
+	  	- [ ] FlagType (enum) <!-- Flag type e.g. Spam --!>
+	  	- [ ] InsightId (Ulid) <!-- Association with Insight --!>
+  	- [x] Rating (Entity) <!-- information about ratings for insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] RatedAt (DateTime)
+	  	- [ ] RaterId (Ulid)
+	  	- [ ] RateType (enum) <!-- Rate type e.g. Upvote --!>
+	  	- [ ] InsightId (Ulid) <!-- Association with Tale --!>
+	- [x] Follow (Entity) <!-- information about followers for insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] FollowedAt (DateTime)
+	  	- [ ] FollowerId (Ulid)
+	  	- [ ] InsightId (Ulid) <!-- Association with Insight --!>
+   	- [x] Comment (Entity) <!-- information about comments for insight. 0 or multiple. Recursive. --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] CommentedAt (DateTime)
+	  	- [ ] CommentatorId (Ulid)
+	  	- [ ] ParentId (Ulid) <!-- Parent comment. Null if a root comment. --!>
+	  	- [ ] InsightId (Ulid) <!-- Association with Insight --!>
+ 	- [x] Addendum (Entity) <!-- information about addendums for insight. 0 or multiple. --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] AddedAt (DateTime)
+	  	- [ ] Text (string) 
+		- [ ] InsightId (Ulid) <!-- Association with Insight --!>
+      
+### 7.3 Business rules
+* Duplicate tag names/slugs are not allowed
+* Users are only allowed to rate, flag, follow, or share an insight only once
+* Users can comment or share an insight as many times as they wish
+* Rating, flagging, sharing, and commenting are irreversible
+* A comment can be edited or remove by its creator if it has received no rating
+ 
+### 7.4 External Commands
+* CreateInsight <!-- Creates a new insight --!>
+* UpdateInsightBasic <!-- Updates the basic details of an insight --!>
+* UpdateInsightSummary <!-- Updates summary of an insight --!>
+* UpdateInsightCountry <!-- Updates country of an insight --!>
+* AddInsightTag <!-- Adds a new tag to an insight --!>
+* RemoveInsightTag <!-- Removes a tag from an insight --!>
+* UpdateInsightPhoto <!-- Updates photo of an insight --!>
+* UpdateInsightText <!-- Updates text of an insight --!>
+* UpdateInsightStatus <!-- Updates status of an insight --!>
+* FlagInsight <!-- Report an insight for a violation --!>
+* ShareInsight <!-- Records details of an insight share --!>
+* FollowInsight <!-- Follows an insight for updates --!>
+* UnfollowInsight <!-- Unfollows an insight --!>
+* RateInsight <!-- Rates an insight --!>
+* AddInsightComment <!-- Adds a new comment to an insight --!>
+* AddInsightReply <!-- Adds a reply to a comment on an insight --!>
+* RateInsightComment <!-- Rates an insight comment --!>
+* FlagInsightComment <!-- Flags an insight comment --!>
+* UpdateInsightComment <!-- Updates an insight comment --!>
+* RemoveInsightComment <!-- Removes an insight comment --!>
+* AddInsightAddendum <!-- Adds a new addendum to insight --!>
+
+### 7.5 CreateInsight
+* Creates a new insight with the basics i.e. a title and category
+* Creating insights requires registered users
+
+#### 7.5.1 Request
+* Title (string)
+* Category (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.5.2 Response
+* Id (Ulid) <!-- Id of newly created tale --!>
+* CreatedAt (DateTime)
+
+#### 7.5.3 Validation
+* Title <!-- Not null. Not empty. 128. --!>
+* Category <!-- Not null. IsInEnum. --!>
+
+#### 7.5.4 Work flow
+* Receives and validates request
+* Slugifies title and creates a new insight
+* Save changes
+* Publish event: InsightCreated
+* Returns response
+
+### 7.6 UpdateInsightBasics
+* Updates the basics of an insight i.e. a title and category
+* Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
+
+#### 7.6.1 Request
+* Id (Ulid)
+* Title (string)
+* Category (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.6.2 Response
+* Ok
+
+#### 7.6.3 Validation
+* Id <!-- Not null. --!>
+* Title <!-- Not null. Not empty. 128. --!>
+* Category <!-- Not null. IsInEnum. --!>
+
+#### 7.6.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Slugifies title and updates insight
+* Save changes
+* Publish event: InsightUpdated
+* Returns response
+
+### 7.7 UpdateTaleSummary
+* Updates the summary of an insight
+* Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
+
+#### 7.7.1 Request
+* Id (Ulid)
+* Summary (string)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.7.2 Response
+* Ok
+
+#### 7.7.3 Validation
+* Id <!-- Not null. --!>
+* Summary <!-- Not null. Not empty. 512. --!>
+
+#### 7.7.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Updates insight
+* Save changes
+* Publish event: InsightUpdated
+* Returns response
+
+### 7.8 UpdateInsightText
+* Updates the text of an insight
+* Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
+
+#### 7.8.1 Request
+* Id (Ulid)
+* Text (string)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.8.2 Response
+* Ok
+
+#### 7.8.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 65535. --!>
+
+#### 7.8.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Cleans up Text which contains Html content, and updates insight
+* Save changes
+* Publish event: InsightUpdated
+* Returns response
+
+### 7.9 UpdateInsightPhoto
+* Updates the photo of an insight
+* Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
+
+#### 7.9.1 Request
+* Id (Ulid)
+* PhotoBase64String (string)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.9.2 Response
+* Ok
+
+#### 7.9.3 Validation
+* Id <!-- Not null. --!>
+* PhotoBase64String <!-- Not null. Not empty. --!>
+
+#### 7.9.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Creates a thumbnail and save both files to DigitalOcean Space then update insight
+* Save changes
+* Publish event: InsightUpdated
+* Returns response
+
+### 7.10 UpdateInsightCountry
+* Updates the country of an insight
+* Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
+
+#### 7.10.1 Request
+* Id (Ulid)
+* Country (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.10.2 Response
+* Ok
+
+#### 7.10.3 Validation
+* Id <!-- Not null. --!>
+* Country <!-- Not null. IsInEnum. --!>
+
+#### 7.10.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Updates insight
+* Save changes
+* Publish event: InsightUpdated
+* Returns response
+
+### 7.11 AddInsightTag
+* Adds a new tag to an insight
+
+#### 7.11.1 Request
+* Id (Ulid)
+* Name (string) <!-- Name of tag --!>
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.11.2 Response
+* Ok
+
+#### 7.11.3 Validation
+* Id <!-- Not null. --!>
+* Name <!-- Not null. Not empty. 24. --!>
+
+#### 7.11.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Calls an internal service to register tag and get its Id
+* Creates a new InsightTag and attaches to insight
+* Updates insight
+* Save changes
+* Publish event: InsightUpdated, TagAdded
+* Returns response
+
+### 7.12 RemoveInsightTag
+* Removes existing tag from an insight
+* Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
+
+#### 7.12.1 Request
+* Id (Ulid)
+* TagId (Ulid) <!-- Id of tag --!>
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.12.2 Response
+* Ok
+
+#### 7.12.3 Validation
+* Id <!-- Not null. --!>
+* TagId <!-- Not null. --!>
+
+#### 7.12.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Gets Tag by TagId. If null, throw exception
+* Detaches InsightTag
+* Updates tale
+* Save changes
+* Publish event: InsightUpdated and TagRemoved
+* Returns response
+
+### 7.13 PublishInsight
+* Publishes an insight to become publicly available
+* This is irreversible
+
+#### 7.13.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.13.2 Response
+* Ok
+
+#### 7.13.3 Validation
+* Id <!-- Not null. --!>
+
+#### 7.13.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Updates insight
+* Save changes
+* Publish event: InsightPublished
+* Returns response
+
+### 7.14 RateInsight
+* Rates an insight with a pre-defined type
+* Any registered user is allowed to rate an insight
+* A registered user can only rate a specific insight once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 7.14.1 Request
+* Id (Ulid)
+* RateType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.14.2 Response
+* Ok
+
+#### 7.14.3 Validation
+* Id <!-- Not null. --!>
+* RateType <!-- Not null. IsInEnum. --!>
+
+#### 7.14.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Creates InsightRate and attaches to insight
+* Save changes
+* Publish event: InsightRated
+* Returns response
+
+### 7.15 FlagInsight
+* Flags an insight with a pre-defined type
+* Any registered user is allowed to flag an insight
+* A registered user can only flag a specific insight once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 7.15.1 Request
+* Id (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.15.2 Response
+* Ok
+
+#### 7.15.3 Validation
+* Id <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 7.15.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Creates an InsightFlag and attaches to insight
+* Save changes
+* Publish event: InsightFlagged
+* Returns response
+
+### 7.16 ShareInsight
+* Records details of an insight sharing on other social networks
+* Any user is allowed to share an insight as many times as possible
+* This process is expected to fail gracefully 
+
+#### 7.16.1 Request
+* Id (Ulid)
+* ContactType (enum)
+* Handle (string)
+* AccountId (Ulid) <!-- From HttpContext. Not required --!>
+
+#### 7.16.2 Response
+* Ok
+
+#### 7.16.3 Validation
+* Id <!-- Not null. --!>
+* ContactType <!-- Not null. IsInEnum. --!>
+* Handle <!-- Not null. Not empty. 255. --!>
+
+#### 7.16.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, return response
+* Creates an InsightShare and attaches to insight
+* Save changes
+* Publish event: InsightShared
+* Returns response
+
+### 7.17 FollowInsight
+* Follows an insight for notifications on activities involving the insight
+* A registered user can only follow an insight once i.e. duplicates are not allowed
+* This process is reversible
+
+#### 7.17.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.17.2 Response
+* Ok
+
+#### 7.17.3 Validation
+* Id <!-- Not null. --!>
+
+#### 7.17.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Creates an InsightFollow and attaches to insight
+* Save changes
+* Publish event: InsightFollowed
+* Returns response
+
+### 7.17 UnfollowInsight
+* Unfollows an insight
+
+#### 7.17.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.17.2 Response
+* Ok
+
+#### 7.17.3 Validation
+* Id <!-- Not null. --!>
+
+#### 7.17.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets the InsightFollow attached to insight. If null, throw exception
+* Detaches InsightFollow
+* Save changes
+* Publish event: InsightUnfollowed
+* Returns response
+
+### 7.18 AddInsightComment
+* Adds a comment to an insight
+* Registered users can add as many comments as they wish to an insight
+
+#### 7.18.1 Request
+* Id (Ulid)
+* Text (string)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.18.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 7.18.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 7.18.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Cleans text which contains Html content, create a InsightComment and attaches to insight
+* Save changes
+* Publish event: InsightCommented
+* Returns response
+
+### 7.19 AddInsightReply
+* Adds a comment to an insight
+* Registered users can add as many comments as they wish to an insight
+
+#### 7.19.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.19.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 7.19.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 7.19.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains Html content, creates InsightComment and attaches to comment and insight
+* Save changes
+* Publish event: InsightCommentReplied
+* Returns response
+
+### 7.20 UpdateComment
+* Updates text of a comment 
+* A comment with any rating can no longer be updated
+
+#### 7.20.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.20.2 Response
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 7.20.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 7.20.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains html content and updates comment
+* Save changes
+* Publish event: InsightCommentUpdated
+* Returns response
+
+### 7.21 RemoveComment
+* Removes an existing comment
+* A comment with any rating or replies can no longer be removed except with admin privilege
+
+#### 7.21.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.21.2 Response
+* Ok
+
+#### 7.21.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+
+#### 7.21.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Detaches comment
+* Save changes
+* Publish event: TaleCommentRemoved
+* Returns response
+
+### 7.22 RateTaleComment
+* Rates an insight comment with a pre-defined type
+* Any registered user is allowed to rate an insight comment
+* A registered user can only rate a specific insight comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 7.22.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* RateType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.22.2 Response
+* Ok
+
+#### 7.22.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* RateType <!-- Not null. IsInEnum. --!>
+
+#### 7.22.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets comment by Id. If null, throw exception
+* Creates InsightCommentRate and attaches to comment
+* Save changes
+* Publish event: InsightCommentRated
+* Returns response
+
+### 7.23 FlagInsightComment
+* Flags an insight comment with a pre-defined type
+* Any registered user is allowed to flag an insight comment
+* A registered user can only flag a specific insight comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 7.23.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.23.2 Response
+* Ok
+
+#### 7.23.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 7.23.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Gets a comment by Id. If null, throw exception
+* Creates InsightCommentFlag and attaches to comment
+* Save changes
+* Publish event: InsightCommentFlagged
+* Returns response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
