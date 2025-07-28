@@ -1,12 +1,10 @@
 # 📚 OutScribed Backend - Project Documentation
 
----
-
 **Last Updated:** July 28, 2025
 **Project Lead:** OBI
 **Status:** In Development
 
-This document serves as the central repository for the backend architecture, domain models, processes, and Read Model definitions for the Tale Publishing Platform.
+This document serves as the central repository for the backend architecture, domain models, processes, and Read Model definitions for the OutScribed Publishing Platform.
 
 ---
 
