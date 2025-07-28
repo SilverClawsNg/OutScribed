@@ -2,7 +2,7 @@
 
 ---
 
-**Last Updated:** July 23, 2025
+**Last Updated:** July 28, 2025
 **Project Lead:** OBI
 **Status:** In Development
 
@@ -186,7 +186,7 @@ This section provides description of the ipaddress jailing work flows
 * Id <!-- Not null. --!>
 
 #### 2.5.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets IpAddress by Id, If null, throws an exception.
 * Resets CurrentJailReleaseTime to null and IsPermanentlyJailed to false
 * Save changes
@@ -281,7 +281,7 @@ This section provides description of the onboarding work flows
 * EmailAddress <!-- Not null. Not empty. 255. --!>
 
 #### 3.5.4 Work flow
-* Receives request
+* Receives and validates request
 * Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, publish an event to jail IpAddress and throw new exception.
 * Checks if TempUser by email address already exists
 	* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
@@ -305,7 +305,7 @@ This section provides description of the onboarding work flows
 * EmailAddress <!-- Not null. Not empty. 255. --!>
 
 #### 3.6.4 Work flow
-* Receives request and performs validation then forwards to service
+* Receives and validates request
 * Checks if at least 3 TempUser has been created from same Ip Address in last 10 minutes. If true, publish event to jail IpAddress and throw new exception.
 * Checks if TempUser exists with Id. If false, throw new exception.
 * Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
@@ -330,7 +330,7 @@ This section provides description of the onboarding work flows
 * Id _Not null. Not empty._
 
 #### 3.7.4 Work flow
-* Receives request
+* Receives and validates request
 * Checks if TempUser exists with Id. If false, throw new exception.
 * Checks if TempUser is already verified, throw new exception.
 * Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
@@ -419,7 +419,7 @@ This section provides description of the identity work flows.
 * A user can only hold a single role
 * 
 
-### 4.4 Commands Summary
+### 4.4 External Commands
 * CreateAccount <!-- Creates new account --!>
 * LoginUser <!-- Verifes a user's credentials --!>
 * LogoutUser <!-- Resets user's refreshToken, other logout activities. --!>
@@ -454,7 +454,7 @@ This section provides description of the identity work flows.
 * Id <!-- Not null. --!>
 
 #### 4.5.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets TempUser with Id. If no record found, throws an exception.
 * If record ws found, checks if account has been verified i.e. IsVerifed == true. If false, throws an exception.
 * Checks if duplicate email address or username exists. If record is found, it would be assumed this is a user who have earlier registered. Returns response (IsSuccessful = false)
@@ -491,7 +491,7 @@ This section provides description of the identity work flows.
 * Password <!-- Not null. Not empty. 8. --!>
 
 #### 4.6.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account by Username. If null, throws an exception.
 * Compares Passwords. If false, throws an exception.
 * Create and attach a new login history
@@ -513,7 +513,7 @@ This section provides description of the identity work flows.
 #### 4.7.3 Validation
 
 #### 4.7.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account by RefreshToken. If no record found, returns response
 * Resets RefreshToken
 * Save changes
@@ -541,7 +541,7 @@ This section provides description of the identity work flows.
 * EmailAddress (string) <!-- Max:255 --!>
 
 #### 4.8.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account by Id. If null, returns response
 * If PhotoBase64 is not null, Generate a new Filename, Save file to DigitalOcean Space
 * Update Title, Bio, IsAnnonymous, EmailAddress where not null
@@ -568,7 +568,7 @@ This section provides description of the identity work flows.
 * Text <!-- Not Null. Not Empty. 64 --!>
 
 #### 4.9.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account by Id. If null, returns response
 * Update contact if already exists else create and attach a new contact
 * Create and attach a new Notification of enum:ContactUpdated
@@ -589,7 +589,7 @@ This section provides description of the identity work flows.
 * EmailAddress <!-- Not null. Not empty. 255. --!>
 
 #### 4.10.4 Work flow
-* Receives request
+* Receives and validates request
 * Get account bt email address. If it does not exists, throw new exception.
 	* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw new exception.
 	* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes and throw new exception.
@@ -612,7 +612,7 @@ This section provides description of the identity work flows.
 * EmailAddress <!-- Not null. Not empty. 255.
 
 #### 4.11.4 Work flow
-* Receives request
+* Receives and validates request
 * Get Account by email address. If null, throw an exception.
 * Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw an exception.
 * Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes, and throw an exception.
@@ -639,7 +639,7 @@ This section provides description of the identity work flows.
 * Token <!-- Not null. Not empty. Size: 6. --!>
 
 #### 4.12.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account exists with Id. If null, throw an exception.
 * Compares Token. If false, throw an exception.
 * Hash password, generate Salt and update.
@@ -663,7 +663,7 @@ This section provides description of the identity work flows.
 * NewPassword <!-- Not null. Not empty. Min: 8 --!>
 
 #### 4.13.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account with Id. If null, throw an exception.
 * Compares old password. If false, throw an exception.
 * Hash new password, generate Salt and update.
@@ -687,7 +687,7 @@ This section provides description of the identity work flows.
 * ApplicationBase64String <!-- Not null. Not empty. --!>
 
 #### 4.14.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account exists with Id. If null, throw an exception.
 * Checks if Writer entity is already attached to account. If true, throws an exception.
 * Generate a new Filename, Save ApplicationBase64String to DigitalOcean Space
@@ -711,7 +711,7 @@ This section provides description of the identity work flows.
 * ApplicantId <!-- Not null. Not empty. --!>
 
 #### 4.15.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account with ApplicantId. If null, throw an exception.
 * Checks if Writer entity is attached to account. If false, throws an exception.
 * Update Writer.
@@ -735,7 +735,7 @@ This section provides description of the identity work flows.
 * ApplicantId <!-- Not null. Not empty. --!>
 
 #### 4.16.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account with ApplicantId. If null, throw an exception.
 * Checks if Writer entity is attached to account. If false, throws an exception.
 * Update Writer emtity.
@@ -760,7 +760,7 @@ This section provides description of the identity work flows.
 * RoleType <!-- Not null. IsEnum --!>
 
 #### 4.17.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account with AssigneeId. If null, throw an exception.
 * Checks if Admin entity is already attached. If true, throws an exception.
 * Creates an attaches Admin.
@@ -785,7 +785,7 @@ This section provides description of the identity work flows.
 * RoleType <!-- Not null. IsEnum --!>
 
 #### 4.18.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account with AdminId. If null, throw an exception.
 * Checks if Admin entity is attached. If false, throws an exception.
 * Update Admin.
@@ -810,7 +810,7 @@ This section provides description of the identity work flows.
 * RoleType <!-- Not null. IsEnum --!>
 
 #### 4.19.4 Work flow
-* Receives request
+* Receives and validates request
 * Gets Account with Id. If null, throw an exception.
 * Checks if Admin entity is attached. If false, throws an exception.
 * Update Admin.
@@ -873,29 +873,29 @@ This section provides description of the publishing work flows.
 * Tales can be tagged, commented on, shared, flagged, follwoed, and rated.
 
 ### 5.2 Tale Lifecycle
-- [ ] Creation <!-- Tales are created by registered users with Writer privilege. At this stage, the tale is only visible to its creator --!>
-- [x] Updating <!-- Attributes of tale such as summary, photo, tags, text, etc, are added or updated --!>
+- [ ] Creation <!-- Tales are created by registered users with Writer privilege. At this stage, the tale is only visible to its creator. enum:Created --!>
+- [x] Updating <!-- Attributes of tale such as summary, photo, tags, text, etc, are added or updated.  --!>
 	- [ ] Post-Creation <!-- Tales can be updated after creation --!>
  	- [ ] Returned by Checker <!-- Tales can be updated if returned by a checker --!>
   	- [ ] Returned by Editor  <!-- Tales can be updated if returned by an editor --!>
   	- [ ] Returned by Publisher  <!-- Tales can be updated if returned by a publisher --!>
 - [x] Submission <!-- After updating, a tale is offically submitted --!>
-	- [ ] Submitted <!-- Tales can be submitted after creation and updating --!>
- 	- [ ] Resubmitted to Checker <!-- Tales are resubmitted to checker if it was returned by checker --!>
-  	- [ ] Resubmitted to Editor <!-- Tales are resubmitted to editor if it was returned by editor --!>
-  	- [ ] Resubmitted to Publisher <!-- Tales are resubmitted to publisher if it was returned by publisher --!>
+	- [ ] Submitted <!-- Tales can be submitted after creation and updating. enum:Submitted --!>
+ 	- [ ] Resubmitted to Checker <!-- Tales are resubmitted to checker if it was returned by checker. enum:ResubmittedToChecker --!>
+  	- [ ] Resubmitted to Editor <!-- Tales are resubmitted to editor if it was returned by editor. enum:ResubmittedToEditor --!>
+  	- [ ] Resubmitted to Publisher <!-- Tales are resubmitted to publisher if it was returned by publisher. enum:ResubmittedToPublisher --!>
 - [x] Checking <!-- After submission post-creation or resubmitted to checker, a tale is checked for content legality --!>
-	- [ ] Checked <!-- Tales are considered checked if assumed to have passed the minimal level of legal criteria --!>
- 	- [ ] Returned by Checker <!-- Tales can be returned to the creator to review --!>
-  	- [ ] Rejected by Checker <!-- Tales can be rejected by a checker and progress truncated --!>
+	- [ ] Checked <!-- Tales are considered checked if assumed to have passed the minimal level of legal criteria. enum:Checked --!>
+ 	- [ ] Returned by Checker <!-- Tales can be returned to the creator to review. enum:ReturnedByChecker --!>
+  	- [ ] Rejected by Checker <!-- Tales can be rejected by a checker and progress truncated. enum:RejectedByChecker --!>
 - [x] Editing <!-- After checked or resubmited to editor, a tale is reviewed for content quality --!>
-	- [ ] Edited <!-- Tales are considered edited if they pass the minimal criteria for content quality --!>
- 	- [ ] Returned by Editor <!-- Tales can be returned by an editor to the creator for review --!>
-  	- [ ] Rejected by Editor <!-- Tales can be rejected by an editor and progress truncated --!>
+	- [ ] Edited <!-- Tales are considered edited if they pass the minimal criteria for content quality, enum:Edited --!>
+ 	- [ ] Returned by Editor <!-- Tales can be returned by an editor to the creator for review. enum:ReturnedByEditor --!>
+  	- [ ] Rejected by Editor <!-- Tales can be rejected by an editor and progress truncated. enum:RejectedByEditor --!>
 - [x] Publication <!-- After checked or resubmited to editor, a tale is reviewed for marketability --!>
-	- [ ] Published <!-- Tales are considered publsihed if they pass the minimal criteria for marketability and can now be available publicly --!>
- 	- [ ] Returned by Publisher <!-- Tales can be returned by a publisher to the creator for review --!>
-  	- [ ] Rejected by Publisher <!-- Tales can be rejected by a publisher and progress truncated --!>
+	- [ ] Published <!-- Tales are considered publsihed if they pass the minimal criteria for marketability and can now be available publicly. enum:Published --!>
+ 	- [ ] Returned by Publisher <!-- Tales can be returned by a publisher to the creator for review. enum:ReturnedByPublisher --!>
+  	- [ ] Rejected by Publisher <!-- Tales can be rejected by a publisher and progress truncated. enum:RejectedByPublsiher --!>
      
    
 ### 5.3 Models
@@ -949,8 +949,283 @@ This section provides description of the publishing work flows.
       
 ### 5.3 Business rules
 * Duplicate tag names/slugs are not allowed
+* Users are only allowed to rate, flag, follow, or share a tale only once
+* Users can comment or share a tale as many times as they wish
+* Rating, flagging, sharing, and commenting are irreversible
+* A comment can be edited only within 20 minutes of creating it
  
-### 5.4 Internal Services
-* AddTag <!-- Creates a new tag --!>
-* RemoveTag <!-- Removes a tag --!>
+### 5.4 External Commands
+* CreateTale <!-- Creates a new tale --!>
+* UpdateTaleBasic <!-- Updates the basic details of a tale --!>
+* UpdateTaleSummary <!-- Updates summary of a tale --!>
+* UpdateTaleCountry <!-- Updates country of tale --!>
+* AddTaleTag <!-- Adds a new tag to tale --!>
+* RemoveTaleTag <!-- Removes a tag from tale --!>
+* UpdateTalePhoto <!-- Updates photo of tale --!>
+* UpdateTaleText <!-- Updates text of tale --!>
+* UpdateTaleStatus <!-- Updates status of tale --!>
+* FlagTale <!-- Report a tale for a violation --!>
+* ShareTale <!-- Records details of a tale share --!>
+* FollowTale <!-- Follows a tale for updates --!>
+* UnfollowTale <!-- Unfollows a tale --!>
+* RateTale <!-- Rates a tale --!>
+* AddComment <!-- Adds a new comment to a tale --!>
+* AddReply <!-- Adds a reply to a comment on a tale --!>
+* RateComment <!-- Rates a tale comment --!>
+* FlagComment <!-- Flags a tale comment --!>
+
+### 5.5 CreateTale
+* Creates a new tale with the basics i.e. a title and category
+* Creating tales requires registered users with Writer privilege
+
+#### 5.5.1 Request
+* Title (string)
+* Category (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.5.2 Response
+* Id (Ulid) <!-- Id of newly created tale --!>
+* CreatedAt (DateTime)
+
+#### 5.5.3 Validation
+* Title <!-- Not null. Not empty. 128. --!>
+* Category <!-- Not null. IsInEnum. --!>
+
+#### 5.5.4 Work flow
+* Receives and validates request
+* Slugifies title and creates a new tale
+* Save changes
+* Publish event: TaleCreated
+* Returns response
+
+### 5.6 UpdateTaleBasics
+* Updates the basics of a tale i.e. a title and category
+
+#### 5.6.1 Request
+* Id (Ulid)
+* Title (string)
+* Category (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.6.2 Response
+* Ok
+
+#### 5.6.3 Validation
+* Id <!-- Not null. --!>
+* Title <!-- Not null. Not empty. 128. --!>
+* Category <!-- Not null. IsInEnum. --!>
+
+#### 5.6.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Slugifies title and updates tale
+* Save changes
+* Publish event: TaleUpdated
+* Returns response
+
+### 5.7 UpdateTaleSummary
+* Updates the summary of a tale
+
+#### 5.7.1 Request
+* Id (Ulid)
+* Summary (string)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.7.2 Response
+* Ok
+
+#### 5.7.3 Validation
+* Id <!-- Not null. --!>
+* Summary <!-- Not null. Not empty. 512. --!>
+
+#### 5.7.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Updates tale
+* Save changes
+* Publish event: TaleUpdated
+* Returns response
+
+### 5.8 UpdateTaleText
+* Updates the text of a tale
+
+#### 5.8.1 Request
+* Id (Ulid)
+* Text (string)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.8.2 Response
+* Ok
+
+#### 5.8.3 Validation
+* Id <!-- Not null. --!>
+* Summary <!-- Not null. Not empty. 65535. --!>
+
+#### 5.8.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Cleans up Text which contains Html content, and updates tale
+* Save changes
+* Publish event: TaleUpdated
+* Returns response
+
+### 5.9 UpdateTalePhoto
+* Updates the photo of a tale
+
+#### 5.9.1 Request
+* Id (Ulid)
+* PhotoBase64String (string)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.8.2 Response
+* Ok
+
+#### 5.8.3 Validation
+* Id <!-- Not null. --!>
+* PhotoBase64String <!-- Not null. Not empty. --!>
+
+#### 5.8.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Creates a thumbnail and save both files to DigitalOcean Space then update tale
+* Save changes
+* Publish event: TaleUpdated
+* Returns response
+
+### 5.10 UpdateTaleCountry
+* Updates the country of a tale
+
+#### 5.10.1 Request
+* Id (Ulid)
+* Country (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.10.2 Response
+* Ok
+
+#### 5.10.3 Validation
+* Id <!-- Not null. --!>
+* Country <!-- Not null. IsInEnum. --!>
+
+#### 5.10.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Updates tale
+* Save changes
+* Publish event: TaleUpdated
+* Returns response
+
+### 5.11 UpdateTaleStatus
+* Updates the text of a tale
+* Handles the stages of a tale's lifecycle from submission to publication
+* Different privileges are required for each update of a tale's status
+	* Writer - Submitted, ResubmittedToChecker, ResubmittedToEditor, ResubmittedToPublisher
+ 	* Admin:Checker - Checked, ReturnedByChecker, RejectedByChecker
+  	* Admin:Editor - Edited, ReturnedByEditor, RejectedByEditor
+  	* Admin:Publsiher - Published, ReturnedByPublisher, RejectedByPublisher
+* Events thrown also reflects the status been updated
+* If status is Published, tale must already have a title, category, summary, photo, and text
+
+#### 5.11.1 Request
+* Id (Ulid)
+* TaleStatus (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.11.2 Response
+* Ok
+
+#### 5.11.3 Validation
+* Id <!-- Not null. --!>
+* TaleStatus <!-- Not null. IsInEnum. --!>
+
+#### 5.11.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Updates tale
+* Save changes
+* Publish event based on status
+* Returns response
+
+### 5.12 RateTale
+* Rates a tale with a pre-defined type
+* Any registered user is allowed to rate a tale
+* A registered user can only rate a specific tale once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 5.12.1 Request
+* Id (Ulid)
+* RateType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.12.2 Response
+* Ok
+
+#### 5.12.3 Validation
+* Id <!-- Not null. --!>
+* RateType <!-- Not null. IsInEnum. --!>
+
+#### 5.12.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Updates tale
+* Save changes
+* Publish event: TaleRated
+* Returns response
+
+### 5.13 FlagTale
+* Flags a tale with a pre-defined type
+* Any registered user is allowed to flag a tale
+* A registered user can only flag a specific tale once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 5.13.1 Request
+* Id (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 5.13.2 Response
+* Ok
+
+#### 5.13.3 Validation
+* Id <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 5.13.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, throw exception.
+* Updates tale
+* Save changes
+* Publish event: TaleFlagged
+* Returns response
+
+### 5.14 ShareTale
+* Records details of a tale sharing on other social networks
+* Any user is allowed to share a tale as many times as possible
+* This process is expected to fail gracefully 
+
+#### 5.14.1 Request
+* Id (Ulid)
+* ContactType (enum)
+* Handle (string)
+* AccountId (Ulid) <!-- From HttpContext. Not required --!>
+
+#### 5.14.2 Response
+* Ok
+
+#### 5.14.3 Validation
+* Id <!-- Not null. --!>
+* ContactType <!-- Not null. IsInEnum. --!>
+* Handle <!-- Not null. Not empty. 255. --!>
+
+#### 5.14.4 Work flow
+* Receives and validates request
+* Gets Tale by Id. If null, return response
+* Updates tale
+* Save changes
+* Publish event: TaleShared
+* Returns response
+
+
+
+
 
