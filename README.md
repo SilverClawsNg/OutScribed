@@ -169,7 +169,7 @@ This section provides description of the ipaddress jailing work flows
 ### 2.3 Business Rules
 * Ip Address involved in up to 5 violations within a 24 hours period is permanently jailed
 
-### 2.4 External Commands Summary
+### 2.4 External Commands
 * ReleaseIpAddress <!-- Manually releases a jailed IpAddress.  --!>
 
 ### 2.5 ReleaseIpAddress
@@ -192,17 +192,40 @@ This section provides description of the ipaddress jailing work flows
 * Save changes
 * Return response
 
-### 2.6 Internal Services Summary
-* GetTagId <!-- Creates and/or returns tag Id --!>
+### 2.6 Internal Services
+* ProcessViolation <!-- Handles an Ip Address violation --!>
+* IsCurrentlyJailed <!-- Checks if an Ip Address is currently jailed --!>
 
-### 5.5 GetTagId
-* Creates a new tag from a name, if it does not exist
+### 2.7 ProcessViolation
+* Jails an Ip Address which was reported by other modules for violations through event publishing
+* Called by an event consumer whuch subscribes to the event
+* A jailed Ip Address jail time is determined by the number of violations encountered in the last 24 hours
+* The maximum jail time for an Ip Address is 24 hours except for permanently banned entries with unexpiring jail time
  
-#### 5.5.1 Work flow
-* Receives a name (string)
-* Gets Tag with name.
+#### 2.7.1 Work flow
+* Receives an Ip Address (string)
+* Checks if the address already exist
+	* If false, this is the first violation.
+ 		* Creates a new entry
+   		* Attaches a new history to it 
+ 	* Else
+  		* If permanently banned, it creates and attaches a new history
+    		* If this is its threshold number of violations, it is permanently banned 
+    		* Else it calculates its jail time, creates and atatches a new history
 * If it does not exist, slugify the name and create a new tag
 * Returns the Id of the tag
+
+### 2.8 IsCurrentlyJailed
+* Checks if an Ip Address is currently in jail
+* Called by a middleware which is used in rate limiting to ensure requests from jailed Ip Addresses are truncated
+
+#### 2.7.1 Work flow
+* Receives an Ip Address (string)
+* Checks if the address already exist
+	* If false, it returns false
+ 	* Else
+  		* Checks if permanently banned and returns true
+    		* Checks if jail time has expired and returns false else returns true. 
 
 --
 
@@ -807,20 +830,127 @@ This section provides description of the tagging work flows.
 	- [ ] Id (Ulid)
 	- [ ] Name (string)
  	- [ ] CreatedAt (DateTime)
-  	- [ ] Slug (DateTime) <!-- Generated from the name --!>
+  	- [ ] Counter (int) <!-- Keeps tab of number of contents with tag --!> 
+  	- [ ] Slug (string) <!-- Generated from the name --!>
   
 ### 5.3 Business rules
 * Duplicate tag names/slugs are not allowed
  
-### 5.4 Internal Services Summary
-* GetTagId <!-- Creates and/or returns tag Id --!>
+### 5.4 Internal Services
+* AddTag <!-- Creates a new tag --!>
+* RemoveTag <!-- Removes a tag --!>
 
-### 5.5 GetTagId
+### 5.5 AddTag
 * Creates a new tag from a name, if it does not exist
 * Called by other Modules trying to create a new content tag
  
 #### 5.5.1 Work flow
 * Receives a name (string)
 * Gets Tag with name.
-* If it does not exist, slugify the name and create a new tag
-* Returns the Id of the tag
+* If it does not exist, slugify the name, and create a new tag
+* Else increments the tags counter
+* Save changes
+* Returns Id of tag
+
+### 5.5 RemoveTag
+* Removes an existing tag
+* Tags with at least one content attached cannot be removed
+ 
+#### 5.5.1 Work flow
+* Receives a name (string)
+* Gets Tag with name.
+* If it exist and counter == 1 then remove tag
+* Save changes
+* Else decrements counter
+
+## 6.0 Publishing Module
+
+This section provides description of the publishing work flows. 
+
+### 5.1 Description
+* Tales are the primary feature of the application
+* Tales are paid short stories which follows a unique writing pattern
+* Tales can be tagged, commented on, shared, flagged, follwoed, and rated.
+
+### 5.2 Tale Lifecycle
+- [ ] Creation <!-- Tales are created by registered users with Writer privilege. At this stage, the tale is only visible to its creator --!>
+- [x] Updating <!-- Attributes of tale such as summary, photo, tags, text, etc, are added or updated --!>
+	- [ ] Post-Creation <!-- Tales can be updated after creation --!>
+ 	- [ ] Returned by Checker <!-- Tales can be updated if returned by a checker --!>
+  	- [ ] Returned by Editor  <!-- Tales can be updated if returned by an editor --!>
+  	- [ ] Returned by Publisher  <!-- Tales can be updated if returned by a publisher --!>
+- [x] Submission <!-- After updating, a tale is offically submitted --!>
+	- [ ] Submitted <!-- Tales can be submitted after creation and updating --!>
+ 	- [ ] Resubmitted to Checker <!-- Tales are resubmitted to checker if it was returned by checker --!>
+  	- [ ] Resubmitted to Editor <!-- Tales are resubmitted to editor if it was returned by editor --!>
+  	- [ ] Resubmitted to Publisher <!-- Tales are resubmitted to publisher if it was returned by publisher --!>
+- [x] Checking <!-- After submission post-creation or resubmitted to checker, a tale is checked for content legality --!>
+	- [ ] Checked <!-- Tales are considered checked if assumed to have passed the minimal level of legal criteria --!>
+ 	- [ ] Returned by Checker <!-- Tales can be returned to the creator to review --!>
+  	- [ ] Rejected by Checker <!-- Tales can be rejected by a checker and progress truncated --!>
+- [x] Editing <!-- After checked or resubmited to editor, a tale is reviewed for content quality --!>
+	- [ ] Edited <!-- Tales are considered edited if they pass the minimal criteria for content quality --!>
+ 	- [ ] Returned by Editor <!-- Tales can be returned by an editor to the creator for review --!>
+  	- [ ] Rejected by Editor <!-- Tales can be rejected by an editor and progress truncated --!>
+- [x] Publication <!-- After checked or resubmited to editor, a tale is reviewed for marketability --!>
+	- [ ] Published <!-- Tales are considered publsihed if they pass the minimal criteria for marketability and can now be available publicly --!>
+ 	- [ ] Returned by Publisher <!-- Tales can be returned by a publisher to the creator for review --!>
+  	- [ ] Rejected by Publisher <!-- Tales can be rejected by a publisher and progress truncated --!>
+     
+   
+### 5.3 Models
+- [x] Tale  (AggregateRoot)
+	- [ ] Id (Ulid)
+	- [ ] Title (string)
+ 	- [ ] CreatedAt (DateTime)
+  	- [ ] Slug (string) <!-- Genrated from the title --!> 
+  	- [ ] Summary (string)
+  	- [ ] Text (string)
+  	- [ ] Photo (string) <!-- File name of photo on DigitalOcean Space --!>
+  	- [ ] CreatorId (Ulid)
+  	- [ ] Category (enum)
+  	- [ ] Country (enum)
+  	- [ ] Status (enum)
+  	- [x] Tag (Entity) <!-- Information about attached tags. 0 or multiple --!>
+  		- [ ] Id (Ulid) <!-- Id of Tag. --!>
+  	 	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
+  	 	- [ ] TaggedAt (DateTime) 
+  	- [x] Share (Entity) <!-- information about share history of tale. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] SharedAt (DateTime)
+	  	- [ ] SharerId (Ulid)
+	  	- [ ] ContactType (enum) <!-- Media type e.g. Facebook --!>
+	  	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
+	  	- [ ] Handle (string) <!-- Contact text e.g. mike@yahoo.com --!>
+  	- [x] Flag (Entity) <!-- information about flag history of tale. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] FlaggedAt (DateTime)
+	  	- [ ] FlaggerId (Ulid)
+	  	- [ ] FlagType (enum) <!-- Flag type e.g. Spam --!>
+	  	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
+  	- [x] Rating (Entity) <!-- information about ratings for tale. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] RatedAt (DateTime)
+	  	- [ ] RaterId (Ulid)
+	  	- [ ] RateType (enum) <!-- Rate type e.g. Upvote --!>
+	  	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
+	- [x] Follow (Entity) <!-- information about followers for tale. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] FollowedAt (DateTime)
+	  	- [ ] FollowerId (Ulid)
+	  	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
+   	- [x] Comment (Entity) <!-- information about comments for tale. 0 or multiple. Recursive. --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] CommentedAt (DateTime)
+	  	- [ ] CommentatorId (Ulid)
+	  	- [ ] ParentId (Ulid) <!-- Parent comment. Null if a root comment. --!>
+	  	- [ ] TaleId (Ulid) <!-- Association with Tale --!>
+
+      
+### 5.3 Business rules
+* Duplicate tag names/slugs are not allowed
+ 
+### 5.4 Internal Services
+* AddTag <!-- Creates a new tag --!>
+* RemoveTag <!-- Removes a tag --!>
+
