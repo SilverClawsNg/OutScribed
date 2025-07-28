@@ -227,7 +227,7 @@ This section provides description of the ipaddress jailing work flows
   		* Checks if permanently banned and returns true
     		* Checks if jail time has expired and returns false else returns true. 
 
---
+---
 
 ## 3. Onboarding Module
 
@@ -863,7 +863,7 @@ This section provides description of the identity work flows.
 * Publish event: AccountUnfollowed
 * Returns response
 
---
+---
 
 ## 5.0 Tagging Module
 
@@ -911,7 +911,7 @@ This section provides description of the tagging work flows.
 * Save changes
 * Else decrements counter
 
---
+---
 
 ## 6.0 Publishing Module
 
@@ -1540,7 +1540,7 @@ This section provides description of the publishing work flows.
 * Publish event: TaleCommentFlagged
 * Returns response
 
--- 
+---
 
 ## 7.0 Analysis Module
 
@@ -1625,7 +1625,8 @@ This section provides description of the analysis work flows.
 * RemoveInsightTag <!-- Removes a tag from an insight --!>
 * UpdateInsightPhoto <!-- Updates photo of an insight --!>
 * UpdateInsightText <!-- Updates text of an insight --!>
-* UpdateInsightStatus <!-- Updates status of an insight --!>
+* PublishInsight <!-- Publishes an insight --!>
+* RemoveInsight <!-- Removes an insight --!>
 * FlagInsight <!-- Report an insight for a violation --!>
 * ShareInsight <!-- Records details of an insight share --!>
 * FollowInsight <!-- Follows an insight for updates --!>
@@ -1689,7 +1690,7 @@ This section provides description of the analysis work flows.
 * Publish event: InsightUpdated
 * Returns response
 
-### 7.7 UpdateTaleSummary
+### 7.7 UpdateInsightSummary
 * Updates the summary of an insight
 * Published insights with any engagement i.e. rating, addendum, comment can no longer be edited
 
@@ -1831,7 +1832,6 @@ This section provides description of the analysis work flows.
 * Gets Insight by Id. If null, throw exception.
 * Gets Tag by TagId. If null, throw exception
 * Detaches InsightTag
-* Updates tale
 * Save changes
 * Publish event: InsightUpdated and TagRemoved
 * Returns response
@@ -1858,15 +1858,12 @@ This section provides description of the analysis work flows.
 * Publish event: InsightPublished
 * Returns response
 
-### 7.14 RateInsight
-* Rates an insight with a pre-defined type
-* Any registered user is allowed to rate an insight
-* A registered user can only rate a specific insight once i.e. duplicates are not allowed
-* This process is irreversible
+### 7.14 RemoveInsight
+* Removes an insight
+* Insights with any engagement i.e. rating, addendum, comment cannot be removed
 
 #### 7.14.1 Request
 * Id (Ulid)
-* RateType (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
 #### 7.14.2 Response
@@ -1874,25 +1871,24 @@ This section provides description of the analysis work flows.
 
 #### 7.14.3 Validation
 * Id <!-- Not null. --!>
-* RateType <!-- Not null. IsInEnum. --!>
 
 #### 7.14.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception.
-* Creates InsightRate and attaches to insight
+* Removes Insight
 * Save changes
-* Publish event: InsightRated
+* Publish event: InsightRemoved
 * Returns response
 
-### 7.15 FlagInsight
-* Flags an insight with a pre-defined type
-* Any registered user is allowed to flag an insight
-* A registered user can only flag a specific insight once i.e. duplicates are not allowed
+### 7.15 RateInsight
+* Rates an insight with a pre-defined type
+* Any registered user is allowed to rate an insight
+* A registered user can only rate a specific insight once i.e. duplicates are not allowed
 * This process is irreversible
 
 #### 7.15.1 Request
 * Id (Ulid)
-* FlagType (enum)
+* RateType (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
 #### 7.15.2 Response
@@ -1900,9 +1896,35 @@ This section provides description of the analysis work flows.
 
 #### 7.15.3 Validation
 * Id <!-- Not null. --!>
-* FlagType <!-- Not null. IsInEnum. --!>
+* RateType <!-- Not null. IsInEnum. --!>
 
 #### 7.15.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception.
+* Creates InsightRate and attaches to insight
+* Save changes
+* Publish event: InsightRated
+* Returns response
+
+### 7.16 FlagInsight
+* Flags an insight with a pre-defined type
+* Any registered user is allowed to flag an insight
+* A registered user can only flag a specific insight once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 7.16.1 Request
+* Id (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.16.2 Response
+* Ok
+
+#### 7.16.3 Validation
+* Id <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 7.16.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception.
 * Creates an InsightFlag and attaches to insight
@@ -1910,26 +1932,26 @@ This section provides description of the analysis work flows.
 * Publish event: InsightFlagged
 * Returns response
 
-### 7.16 ShareInsight
+### 7.17 ShareInsight
 * Records details of an insight sharing on other social networks
 * Any user is allowed to share an insight as many times as possible
 * This process is expected to fail gracefully 
 
-#### 7.16.1 Request
+#### 7.17.1 Request
 * Id (Ulid)
 * ContactType (enum)
 * Handle (string)
 * AccountId (Ulid) <!-- From HttpContext. Not required --!>
 
-#### 7.16.2 Response
+#### 7.17.2 Response
 * Ok
 
-#### 7.16.3 Validation
+#### 7.17.3 Validation
 * Id <!-- Not null. --!>
 * ContactType <!-- Not null. IsInEnum. --!>
 * Handle <!-- Not null. Not empty. 255. --!>
 
-#### 7.16.4 Work flow
+#### 7.17.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, return response
 * Creates an InsightShare and attaches to insight
@@ -1937,22 +1959,22 @@ This section provides description of the analysis work flows.
 * Publish event: InsightShared
 * Returns response
 
-### 7.17 FollowInsight
+### 7.18 FollowInsight
 * Follows an insight for notifications on activities involving the insight
 * A registered user can only follow an insight once i.e. duplicates are not allowed
 * This process is reversible
 
-#### 7.17.1 Request
+#### 7.18.1 Request
 * Id (Ulid)
 * AccountId (Ulid) <!-- From HttpContext. --!>
 
-#### 7.17.2 Response
+#### 7.18.2 Response
 * Ok
 
-#### 7.17.3 Validation
+#### 7.18.3 Validation
 * Id <!-- Not null. --!>
 
-#### 7.17.4 Work flow
+#### 7.18.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception
 * Creates an InsightFollow and attaches to insight
@@ -1960,20 +1982,20 @@ This section provides description of the analysis work flows.
 * Publish event: InsightFollowed
 * Returns response
 
-### 7.17 UnfollowInsight
+### 7.18 UnfollowInsight
 * Unfollows an insight
 
-#### 7.17.1 Request
+#### 7.18.1 Request
 * Id (Ulid)
 * AccountId (Ulid) <!-- From HttpContext. --!>
 
-#### 7.17.2 Response
+#### 7.18.2 Response
 * Ok
 
-#### 7.17.3 Validation
+#### 7.18.3 Validation
 * Id <!-- Not null. --!>
 
-#### 7.17.4 Work flow
+#### 7.18.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception
 * Gets the InsightFollow attached to insight. If null, throw exception
@@ -1982,40 +2004,13 @@ This section provides description of the analysis work flows.
 * Publish event: InsightUnfollowed
 * Returns response
 
-### 7.18 AddInsightComment
-* Adds a comment to an insight
-* Registered users can add as many comments as they wish to an insight
-
-#### 7.18.1 Request
-* Id (Ulid)
-* Text (string)
-* AccountId (Ulid) <!-- From HttpContext. --!>
-
-#### 7.18.2 Response
-* CommentId (Ulid)
-* CreatedAt (DateTime)
-* Text (string) <!-- After HtmlContent cleanup --!>
-
-#### 7.18.3 Validation
-* Id <!-- Not null. --!>
-* Text <!-- Not null. Not empty. 1024. --!>
-
-#### 7.18.4 Work flow
-* Receives and validates request
-* Gets Insight by Id. If null, throw exception
-* Cleans text which contains Html content, create a InsightComment and attaches to insight
-* Save changes
-* Publish event: InsightCommented
-* Returns response
-
-### 7.19 AddInsightReply
+### 7.19 AddInsightComment
 * Adds a comment to an insight
 * Registered users can add as many comments as they wish to an insight
 
 #### 7.19.1 Request
 * Id (Ulid)
 * Text (string)
-* CommentId (Ulid)
 * AccountId (Ulid) <!-- From HttpContext. --!>
 
 #### 7.19.2 Response
@@ -2025,21 +2020,19 @@ This section provides description of the analysis work flows.
 
 #### 7.19.3 Validation
 * Id <!-- Not null. --!>
-* CommentId <!-- Not null --!>
 * Text <!-- Not null. Not empty. 1024. --!>
 
 #### 7.19.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception
-* Gets Comment by Id. If null, throw exception
-* Clean text which contains Html content, creates InsightComment and attaches to comment and insight
+* Cleans text which contains Html content, create a InsightComment and attaches to insight
 * Save changes
-* Publish event: InsightCommentReplied
+* Publish event: InsightCommented
 * Returns response
 
-### 7.20 UpdateComment
-* Updates text of a comment 
-* A comment with any rating can no longer be updated
+### 7.20 AddInsightReply
+* Adds a comment to an insight
+* Registered users can add as many comments as they wish to an insight
 
 #### 7.20.1 Request
 * Id (Ulid)
@@ -2048,13 +2041,42 @@ This section provides description of the analysis work flows.
 * AccountId (Ulid) <!-- From HttpContext. --!>
 
 #### 7.20.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
 * Text (string) <!-- After HtmlContent cleanup --!>
 
 #### 7.20.3 Validation
 * Id <!-- Not null. --!>
+* CommentId <!-- Not null --!>
 * Text <!-- Not null. Not empty. 1024. --!>
 
 #### 7.20.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains Html content, creates InsightComment and attaches to comment and insight
+* Save changes
+* Publish event: InsightCommentReplied
+* Returns response
+
+### 7.21 UpdateComment
+* Updates text of a comment 
+* A comment with any rating can no longer be updated
+
+#### 7.21.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 7.21.2 Response
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 7.21.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 7.21.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception
 * Gets Comment by Id. If null, throw exception
@@ -2063,23 +2085,23 @@ This section provides description of the analysis work flows.
 * Publish event: InsightCommentUpdated
 * Returns response
 
-### 7.21 RemoveComment
+### 7.22 RemoveComment
 * Removes an existing comment
 * A comment with any rating or replies can no longer be removed except with admin privilege
 
-#### 7.21.1 Request
+#### 7.22.1 Request
 * Id (Ulid)
 * CommentId (Ulid)
 * AccountId (Ulid) <!-- From HttpContext. --!>
 
-#### 7.21.2 Response
+#### 7.22.2 Response
 * Ok
 
-#### 7.21.3 Validation
+#### 7.22.3 Validation
 * Id <!-- Not null. --!>
 * CommentId <!-- Not null. --!>
 
-#### 7.21.4 Work flow
+#### 7.22.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception
 * Gets Comment by Id. If null, throw exception
@@ -2088,45 +2110,16 @@ This section provides description of the analysis work flows.
 * Publish event: TaleCommentRemoved
 * Returns response
 
-### 7.22 RateTaleComment
+### 7.23 RateTaleComment
 * Rates an insight comment with a pre-defined type
 * Any registered user is allowed to rate an insight comment
 * A registered user can only rate a specific insight comment once i.e. duplicates are not allowed
 * This process is irreversible
 
-#### 7.22.1 Request
-* Id (Ulid)
-* CommentId (Ulid)
-* RateType (enum)
-* AccountId (Ulid) <!-- From HttpContext --!>
-
-#### 7.22.2 Response
-* Ok
-
-#### 7.22.3 Validation
-* Id <!-- Not null. --!>
-* CommentId <!-- Not null. --!>
-* RateType <!-- Not null. IsInEnum. --!>
-
-#### 7.22.4 Work flow
-* Receives and validates request
-* Gets Insight by Id. If null, throw exception
-* Gets comment by Id. If null, throw exception
-* Creates InsightCommentRate and attaches to comment
-* Save changes
-* Publish event: InsightCommentRated
-* Returns response
-
-### 7.23 FlagInsightComment
-* Flags an insight comment with a pre-defined type
-* Any registered user is allowed to flag an insight comment
-* A registered user can only flag a specific insight comment once i.e. duplicates are not allowed
-* This process is irreversible
-
 #### 7.23.1 Request
 * Id (Ulid)
 * CommentId (Ulid)
-* FlagType (enum)
+* RateType (enum)
 * AccountId (Ulid) <!-- From HttpContext --!>
 
 #### 7.23.2 Response
@@ -2135,9 +2128,38 @@ This section provides description of the analysis work flows.
 #### 7.23.3 Validation
 * Id <!-- Not null. --!>
 * CommentId <!-- Not null. --!>
-* FlagType <!-- Not null. IsInEnum. --!>
+* RateType <!-- Not null. IsInEnum. --!>
 
 #### 7.23.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Gets comment by Id. If null, throw exception
+* Creates InsightCommentRate and attaches to comment
+* Save changes
+* Publish event: InsightCommentRated
+* Returns response
+
+### 7.24 FlagInsightComment
+* Flags an insight comment with a pre-defined type
+* Any registered user is allowed to flag an insight comment
+* A registered user can only flag a specific insight comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 7.24.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 7.24.2 Response
+* Ok
+
+#### 7.24.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 7.24.4 Work flow
 * Receives and validates request
 * Gets Insight by Id. If null, throw exception.
 * Gets a comment by Id. If null, throw exception
@@ -2145,6 +2167,524 @@ This section provides description of the analysis work flows.
 * Save changes
 * Publish event: InsightCommentFlagged
 * Returns response
+
+---
+
+## 8.0 Discovery Module
+
+This section provides description of the discovery work flows. 
+
+### 8.1 Description
+* Watchlists are summary of articles from trusted news sources across the internet and highlight stories of interest been monitored by Writers
+* Watchlists may form the foundations of future Tales however they can exist independently
+* Any registered user can create a watchlist i.e. no special privilege is required
+* Watchlists are created publication-ready i.e. once created they become visible online
+* Watchlists can be rated, flagged, followed, and tagged
+* A watchlist can be updated or removed as long as it does not have any rating, shares, and tales
+ 
+### 8.2 Models
+- [x] Watchlist  (AggregateRoot)
+	- [ ] Id (Ulid)
+	- [ ] Title (string)
+ 	- [ ] CreatedAt (DateTime)
+  	- [ ] Slug (string) <!-- Genrated from the title --!> 
+  	- [ ] Summary (string)
+  	- [ ] SourceText (string)
+  	- [ ] SourceUrl (string)
+  	- [ ] CreatorId (Ulid)
+  	- [ ] Category (enum) 
+  	- [ ] Country (enum) <!-- optional --!>
+  	- [x] Tag (Entity) <!-- Information about attached tags. 0 or multiple --!>
+  		- [ ] Id (Ulid) <!-- Id of Tag. --!>
+  	 	- [ ] WatchlistId (Ulid) <!-- Association with Watchlist --!>
+  	 	- [ ] TaggedAt (DateTime)
+  	- [x] Flag (Entity) <!-- information about flag history of insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] FlaggedAt (DateTime)
+	  	- [ ] FlaggerId (Ulid)
+	  	- [ ] FlagType (enum) <!-- Flag type e.g. Spam --!>
+	  	- [ ] WatchlistId (Ulid) <!-- Association with Watchlist --!>
+  	- [x] Rating (Entity) <!-- information about ratings for insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] RatedAt (DateTime)
+	  	- [ ] RaterId (Ulid)
+	  	- [ ] RateType (enum) <!-- Rate type e.g. Upvote --!>
+	  	- [ ] WatchlistId (Ulid) <!-- Association with Watchlist --!>
+	- [x] Follow (Entity) <!-- information about followers for insight. 0 or multiple --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] FollowedAt (DateTime)
+	  	- [ ] FollowerId (Ulid)
+	  	- [ ] WatchlistId (Ulid) <!-- Association with Watchlist --!>
+   	- [x] Comment (Entity) <!-- information about comments for insight. 0 or multiple. Recursive. --!>
+	  	- [ ] Id (Ulid)
+	  	- [ ] CommentedAt (DateTime)
+	  	- [ ] CommentatorId (Ulid)
+	  	- [ ] ParentId (Ulid) <!-- Parent comment. Null if a root comment. --!>
+	  	- [ ] WatchlistId (Ulid) <!-- Association with Watchlist --!>
+ 	- [x] LinkedTale (Entity) <!-- information about tales linked to this watchlist. 0 or multiple. --!>
+	  	- [ ] Id (Ulid) <!-- TaleId --!>
+	  	- [ ] LinkedAt (DateTime)
+		- [ ] WatchlistId (Ulid) <!-- Association with Watchlist --!>
+      
+### 8.3 Business rules
+* Duplicate tag names/slugs are not allowed
+* Users are only allowed to rate, flag, or follow a watchlist only once
+* Users can comment on watchlists as many times as they wish
+* Rating, flagging, and commenting are irreversible
+* A comment can be edited or remove by its creator if it has received no rating
+* Watchlists can only be removed if they do not have any attached rating, comment, or tale
+ 
+### 8.4 External Commands
+* CreateWatchlist <!-- Creates a new watchlist --!>
+* UpdateWatchlist <!-- Updates all details of a watchlist --!>
+* RemoveWatchlist <!-- Removes a watchlist --!>
+* AddWatchlistTag <!-- Adds a new tag to a watchlist --!>
+* RemoveWatchlistTag <!-- Removes a tag from a watchlist --!>
+* FlagWatchlist <!-- Report a watchlist for a violation --!>
+* FollowWatchlist <!-- Follows a watchlist for notifications --!>
+* UnfollowWatchlist <!-- Unfollows a watchlist --!>
+* RateWatchlist <!-- Rates a watchlist --!>
+* AddWatchlistComment <!-- Adds a new comment to a watchlist --!>
+* AddWatchlistReply <!-- Adds a reply to a comment on a watchlist --!>
+* RateWatchlistComment <!-- Rates a watchlist comment --!>
+* FlagWatchlistComment <!-- Flags a watchlist comment --!>
+* UpdateWatchlistComment <!-- Updates a watchlist comment --!>
+* RemoveWatchlistComment <!-- Removes a watchlist comment --!>
+* LinkTale <!-- Links a tale to watchlist --!>
+
+### 8.5 CreateWatchlist
+* Creates a new watchlist
+* A user has to be registered to create a watchlist
+
+#### 8.5.1 Request
+* Title (string)
+* Category (enum)
+* Summary (string)
+* SourceText (string)
+* SourceUrl (string)
+* Country (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.5.2 Response
+* Id (Ulid) <!-- Id of newly created watchlist --!>
+* CreatedAt (DateTime)
+
+#### 8.5.3 Validation
+* Title <!-- Not null. Not empty. 128. --!>
+* Category <!-- Not null. IsInEnum. --!>
+* Summary <!-- Not null. Not empty. 2096 --!>
+* SourceText <!-- Not null. Not empty. 28 --!>
+* SourceUrl <!-- Not null. Not empty. 255 --!>
+* Country <!-- IsInEnum --!>
+
+#### 8.5.4 Work flow
+* Receives and validates request
+* Slugifies title and creates a new watchlist
+* Save changes
+* Publish event: WatchlistCreated
+* Returns response
+
+### 8.6 UpdateWatchlist
+* Updates a watchlist
+* Created watchlists with any engagement i.e. rating, tale, comment can no longer be edited
+
+#### 8.6.1 Request
+* Id (Ulid)
+* Title (string)
+* Category (enum)
+* Summary (string)
+* SourceText (string)
+* SourceUrl (string)
+* Country (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.6.2 Response
+* Ok
+
+#### 8.6.3 Validation
+* Id <!-- Not null. --!>
+* Title <!-- Not null. Not empty. 128. --!>
+* Category <!-- Not null. IsInEnum. --!>
+* Summary <!-- Not null. Not empty. 2096 --!>
+* SourceText <!-- Not null. Not empty. 28 --!>
+* SourceUrl <!-- Not null. Not empty. 255 --!>
+* Country <!-- IsInEnum --!>
+* Category <!-- Not null. IsInEnum. --!>
+
+#### 8.6.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Slugifies title and updates watchlist
+* Save changes
+* Publish event: WatchlistUpdated
+* Returns response
+
+### 8.7 AddWatchlistTag
+* Adds a new tag to a watchlist
+
+#### 8.7.1 Request
+* Id (Ulid)
+* Name (string) <!-- Name of tag --!>
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.7.2 Response
+* Ok
+
+#### 8.7.3 Validation
+* Id <!-- Not null. --!>
+* Name <!-- Not null. Not empty. 24. --!>
+
+#### 8.7.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Calls an internal service to register tag and get its Id
+* Creates a new WatchlistTag and attaches to watchlist
+* Save changes
+* Publish event: WatchlistUpdated, TagAdded
+* Returns response
+
+### 8.8 RemoveWatchlistTag
+* Removes existing tag from a watchlist
+* Watchlists with any engagement i.e. rating, tale, comment can no longer be edited
+
+#### 8.8.1 Request
+* Id (Ulid)
+* TagId (Ulid) <!-- Id of tag --!>
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.8.2 Response
+* Ok
+
+#### 8.8.3 Validation
+* Id <!-- Not null. --!>
+* TagId <!-- Not null. --!>
+
+#### 8.8.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Gets Tag by TagId. If null, throw exception
+* Detaches WatchlistTag
+* Save changes
+* Publish event: WatchlistUpdated and TagRemoved
+* Returns response
+
+### 8.9 RemoveWatchlist
+* Removes a watchlist
+* Watchlists with any engagement i.e. rating, tale, comment cannot be removed
+
+#### 8.9.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.9.2 Response
+* Ok
+
+#### 8.9.3 Validation
+* Id <!-- Not null. --!>
+
+#### 8.9.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Removes Watchlist
+* Save changes
+* Publish event: WatchlistRemoved
+* Returns response
+
+### 8.10 RateWatchlist
+* Rates a watchlist with a pre-defined type
+* Any registered user is allowed to rate a watchlist
+* A registered user can only rate a specific watchlist once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 8.10.1 Request
+* Id (Ulid)
+* RateType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.10.2 Response
+* Ok
+
+#### 8.10.3 Validation
+* Id <!-- Not null. --!>
+* RateType <!-- Not null. IsInEnum. --!>
+
+#### 8.10.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Creates WatchlistRate and attaches to watchlist
+* Save changes
+* Publish event: WatchlistRated
+* Returns response
+
+### 8.11 FlagWatchlist
+* Flags a watchlist with a pre-defined type
+* Any registered user is allowed to flag a watchlist
+* A registered user can only flag a specific watchlist once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 8.11.1 Request
+* Id (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.11.2 Response
+* Ok
+
+#### 8.11.3 Validation
+* Id <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 8.11.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Creates a WatchlistFlag and attaches to watchlist
+* Save changes
+* Publish event: WatchlistFlagged
+* Returns response
+
+### 8.12 FollowWatchlist
+* Follows a watchlist for notifications on activities involving the insight
+* A registered user can only follow a watchlist once i.e. duplicates are not allowed
+* This process is reversible
+
+#### 8.12.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 8.12.2 Response
+* Ok
+
+#### 8.12.3 Validation
+* Id <!-- Not null. --!>
+
+#### 8.12.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception
+* Creates a WatchlistFollow and attaches to watchlist
+* Save changes
+* Publish event: WatchlistFollowed
+* Returns response
+
+### 8.13 UnfollowWatchlist
+* Unfollows a watchlist
+  
+#### 8.13.1 Request
+* Id (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 8.13.2 Response
+* Ok
+
+#### 8.13.3 Validation
+* Id <!-- Not null. --!>
+
+#### 8.13.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception
+* Gets the WatchlistFollow attached to watchlist. If null, throw exception
+* Detaches WatchlistFollow
+* Save changes
+* Publish event: WatchlistUnfollowed
+* Returns response
+
+### 8.14 AddWatchlistComment
+* Adds a comment to a watchlist
+* Registered users can add as many comments as they wish to a watchlist
+
+#### 8.14.1 Request
+* Id (Ulid)
+* Text (string)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 8.14.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 8.14.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 8.14.4 Work flow
+* Receives and validates request
+* Gets Insight by Id. If null, throw exception
+* Cleans text which contains Html content, create a WatchlistComment and attaches to insight
+* Save changes
+* Publish event: WatchlistCommented
+* Returns response
+
+### 8.15 AddWatchlistReply
+* Adds a comment to a watchlist
+* Registered users can add as many comments as they wish to a watchlist
+
+#### 8.15.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 8.15.2 Response
+* CommentId (Ulid)
+* CreatedAt (DateTime)
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 8.15.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 8.15.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains Html content, creates WatchlistComment and attaches to comment and watchlist
+* Save changes
+* Publish event: WatchlistCommentReplied
+* Returns response
+
+### 8.16 UpdateWatchlistComment
+* Updates text of a comment 
+* A comment with any rating can no longer be updated
+
+#### 8.17.1 Request
+* Id (Ulid)
+* Text (string)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 8.17.2 Response
+* Text (string) <!-- After HtmlContent cleanup --!>
+
+#### 8.17.3 Validation
+* Id <!-- Not null. --!>
+* Text <!-- Not null. Not empty. 1024. --!>
+
+#### 8.17.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Clean text which contains html content and updates comment
+* Save changes
+* Publish event: WatchlistCommentUpdated
+* Returns response
+
+### 8.18 RemoveInsightComment
+* Removes an existing comment
+* A comment with any rating or replies can no longer be removed except with admin privilege
+
+#### 8.18.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* AccountId (Ulid) <!-- From HttpContext. --!>
+
+#### 8.18.2 Response
+* Ok
+
+#### 8.18.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+
+#### 8.18.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception
+* Gets Comment by Id. If null, throw exception
+* Detaches comment
+* Save changes
+* Publish event: WatchlistCommentRemoved
+* Returns response
+
+### 8.19 RateWatchlistComment
+* Rates a watchlist comment with a pre-defined type
+* Any registered user is allowed to rate a watchlist comment
+* A registered user can only rate a specific watchlist comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 8.20.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* RateType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.20.2 Response
+* Ok
+
+#### 8.20.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* RateType <!-- Not null. IsInEnum. --!>
+
+#### 8.20.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception
+* Gets comment by Id. If null, throw exception
+* Creates WatchlistCommentRate and attaches to comment
+* Save changes
+* Publish event: WatchlistCommentRated
+* Returns response
+
+### 8.21 FlagWatchlistComment
+* Flags a watchlist comment with a pre-defined type
+* Any registered user is allowed to flag a watchlist comment
+* A registered user can only flag a specific watchlist comment once i.e. duplicates are not allowed
+* This process is irreversible
+
+#### 8.22.1 Request
+* Id (Ulid)
+* CommentId (Ulid)
+* FlagType (enum)
+* AccountId (Ulid) <!-- From HttpContext --!>
+
+#### 8.22.2 Response
+* Ok
+
+#### 8.22.3 Validation
+* Id <!-- Not null. --!>
+* CommentId <!-- Not null. --!>
+* FlagType <!-- Not null. IsInEnum. --!>
+
+#### 8.22.4 Work flow
+* Receives and validates request
+* Gets Watchlist by Id. If null, throw exception.
+* Gets a comment by Id. If null, throw exception
+* Creates WatchlistCommentFlag and attaches to comment
+* Save changes
+* Publish event: WatchlistCommentFlagged
+* Returns response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
