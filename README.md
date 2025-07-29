@@ -57,7 +57,7 @@ This section provides a high-level summary of the project goals, scope, and key 
 * Tagging : Concerned with tagging
 * Jail : Concerned with rate limiting
 
-## 1.4. Project/Folder Architexture
+### 1.4. Project/Folder Architexture
 
 This section provides a summary of the project architecture
 
@@ -128,7 +128,7 @@ This section provides a summary of the project architecture
 
 - [x] tests
 
-## 1.5. Patterns
+### 1.5 Patterns
 
 * This section discusses patterns used in this application
 
@@ -141,6 +141,29 @@ This section provides a summary of the project architecture
 	- [ ] Define a base specification abstract class.
  	- [ ] Define a specification evaluator which translates your domain-specific specification object into an executable LINQ query that Entity Framework Core (or any other ORM supporting IQueryable) can understand and translate into SQL.
   	- [ ] Define specification for domain queries as needed
+
+### 1.6 Error Handling
+
+* This section discusses error handling in the application
+* There are distinct points where errors can occur: The Endpoint e.g. validation errors, Service, Domain, and Persistence.
+* Errors that occurs in the endpoint would be handled by FastEndpoint own errorhandler. It translate the error into a ProblemDetails to be passed to the client.
+* The domain should not be allowed to throw exception except in cases that can result in unstable state e.g. Validation error
+* Otherwise the domain should return enum values called DomainResults in an enums folder in the domain layer.
+* The enums value would clearly indicate the cause of failure but also contain a success value if all goes well
+* This would allow the service layer to evaluate the type of exception to throw because the exceotion would correlate with the result returned
+* For example, for an enum result called TooManyTokenResends there would exists an exception TooManyTokenResendsException which would be thrown
+* This arrangement allows the service to save changes to state, publish any necessary event, and perform other relevant duties before throwing the exception
+* A general exception handler middleware woudl be defined to catch all exceptions, log them, and translate into a ProblemDetails to be passed to the client
+
+### 1.7 Database
+
+* This section discusses database design strategy
+* PostGresSql would be the database choice at the developmental stage of project
+* Three dictinct databases would be created:
+  1. OutScribedDb - This would hold act as the primary storage for application data. The database would be divided into Schemas. Every module would have a dedicated schema while the Read module would exist in its own module
+  2. OutScribedHangfireDb - This would hold Hangfire jobs (scheduled and enqueued)
+  3. OutScribedLogDb - This would hold all logs created by Serilog
+
 
 ---
 
