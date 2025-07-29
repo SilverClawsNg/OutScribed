@@ -9,54 +9,35 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 
     public class Watchlist : AggregateRoot
     {
-
         public DateTime CreatedAt { get; private set; }
-
         public Ulid CreatorId { get; private set; }
-
         public Category Category { get; private set; }
-
         public Country? Country { get; private set; }
-
         public string Summary { get; private set; } = string.Empty;
-
         public Source Source { get; private set; } = default!;
-
         public bool IsOnline { get; private set; }
 
-
         private readonly List<Tag> _tags = [];
-
         public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
 
-
         private readonly List<Rating> _rating = [];
-
         public IReadOnlyCollection<Rating> Ratings => _rating.AsReadOnly();
 
-
-        private readonly List<Follower> _followers = [];
-
-        public IReadOnlyCollection<Follower> Followers => _followers.AsReadOnly();
-
+        private readonly List<Follow> _follows = [];
+        public IReadOnlyCollection<Follow> Follows => _follows.AsReadOnly();
 
         private readonly List<Comment> _comments = [];
-
         public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
 
-
         private readonly List<Flag> _flags = [];
-
         public IReadOnlyCollection<Flag> Flags => _flags.AsReadOnly();
 
-
         private readonly List<LinkedTale> _linkedTales = [];
-
         public IReadOnlyCollection<LinkedTale> LinkedTales => _linkedTales.AsReadOnly();
 
         private Watchlist() { }
 
-        private Watchlist(Guid creatorId, string summary, Source source,
+        private Watchlist(Ulid creatorId, string summary, Source source,
             Category category, Country? country)
         {
             CreatorId = creatorId;
@@ -68,7 +49,7 @@ namespace OutScribed.Modules.Discovery.Domain.Models
             IsOnline = false;
         }
 
-        public static Watchlist Create(Guid creatorId, string summary, string sourceSummary, 
+        public static Watchlist Create(Ulid creatorId, string summary, string sourceSummary, 
             string sourceUrl, Category category, Country country)
         {
           
@@ -123,7 +104,6 @@ namespace OutScribed.Modules.Discovery.Domain.Models
             IsOnline = true;
 
         }
-
         public void AddComment(Ulid id, Ulid commentatorId, string text)
         {
 
@@ -132,7 +112,6 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 
             _comments.Add(Comment.Create(id, commentatorId, text));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddReply(Ulid id, Ulid commentId, Ulid commentatorId, string text)
@@ -143,7 +122,6 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 
             _comments.Add(comment.Reply(id, commentatorId, text));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddFlag(Ulid id, Ulid flaggerId, FlagType type)
@@ -154,29 +132,26 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 
             _flags.Add(Flag.Create(id, flaggerId, type));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
-        public void AddFollower(Ulid id, Ulid followerId)
+        public void AddFollow(Ulid id, Ulid followId)
         {
 
-            if (_followers.Any(c => c.Id == id))
-                throw new AlreadyExistsException(id, "Insight Follower");
+            if (_follows.Any(c => c.Id == id))
+                throw new AlreadyExistsException(id, "Insight Follow");
 
-            _followers.Add(Follower.Create(id, followerId));
+            _follows.Add(Follow.Create(id, followId));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
-        public void RemoveFollower(Ulid id)
+        public void RemoveFollow(Ulid id)
         {
 
-            var follower = _followers.FirstOrDefault(c => c.Id == id)
-                ?? throw new DoesNotExistException(id, "Insight Follower");
+            var follow = _follows.FirstOrDefault(c => c.Id == id)
+                ?? throw new DoesNotExistException(id, "Insight Follow");
 
-            _followers.Remove(follower);
+            _follows.Remove(follow);
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddRating(Ulid id, Ulid raterId, RatingType type)
@@ -187,18 +162,16 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 
             _rating.Add(Rating.Create(id, raterId, type));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
-        public void AddTag(Ulid id, Ulid tagId)
+        public void AddTag(Ulid tagId)
         {
 
-            if (_tags.Any(c => c.Id == id))
-                throw new AlreadyExistsException(id, "Insight Tag");
+            if (_tags.Any(c => c.Id == tagId))
+                throw new AlreadyExistsException(tagId, "Insight Tag");
 
-            _tags.Add(Tag.Create(id, tagId));
+            _tags.Add(Tag.Create(tagId));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
     }
 }

@@ -5,32 +5,23 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 {
     public class Tag : Entity
     {
-
         public DateTime TaggedAt { get; private set; }
-
-        public Ulid TagId { get; private set; }
-
-
         public Ulid WatchlistId { get; private set; } = default!;
-
         public Watchlist Watchlist { get; private set; } = default!;
-
 
         private Tag() { }
 
-        private Tag(Ulid id, Ulid tagId)
-            : base(id)
+        private Tag(Ulid tagId)
+            : base(tagId)
         {
             TaggedAt = DateTime.UtcNow;
-            TagId = tagId;
         }
 
-        public static Tag Create(Ulid id, Ulid tagId)
+        public static Tag Create(Ulid tagId)
         {
 
             var invalidFields = Validator.GetInvalidFields(
             [
-                    new("Watchlist Tag ID", id),
                     new("Tag ID", tagId)
              ]
            );
@@ -40,9 +31,7 @@ namespace OutScribed.Modules.Discovery.Domain.Models
                 throw new InvalidParametersException(invalidFields);
             }
 
-            //raise event
-
-            return new Tag(id, tagId);
+            return new Tag(tagId);
         }
     }
 }

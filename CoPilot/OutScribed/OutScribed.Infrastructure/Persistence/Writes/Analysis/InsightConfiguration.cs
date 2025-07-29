@@ -96,14 +96,14 @@ namespace OutScribed.Infrastructure.Persistence.Writes.Analysis
                .FindNavigation(nameof(Insight.Flags))?
                .SetPropertyAccessMode(PropertyAccessMode.Field);
 
-            builder.HasMany(c => c.Followers)
+            builder.HasMany(c => c.Follows)
              .WithOne(c => c.Insight)
              .HasForeignKey(c => c.InsightId)
              .IsRequired()
              .OnDelete(DeleteBehavior.NoAction);
 
             builder.Metadata
-               .FindNavigation(nameof(Insight.Followers))?
+               .FindNavigation(nameof(Insight.Follows))?
                .SetPropertyAccessMode(PropertyAccessMode.Field);
 
             builder.HasMany(c => c.Ratings)

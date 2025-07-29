@@ -9,7 +9,6 @@ namespace OutScribed.Modules.Onboarding.Domain.Models
         public string Token { get; private set; }
         public DateTime ExpiresAt { get; private set; }
 
-
         private OneTimeToken(string token, DateTime expiresAt)
         {
             Token = token;

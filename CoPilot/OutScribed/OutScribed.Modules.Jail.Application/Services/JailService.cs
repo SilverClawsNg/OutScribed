@@ -4,49 +4,32 @@ using OutScribed.Modules.Jail.Domain.Specifications;
 using OutScribed.SharedKernel.Abstract.OutScribed.SharedKernel.Abstract;
 using OutScribed.SharedKernel.Enums;
 using OutScribed.SharedKernel.Utilities;
+using System.Net;
 
 namespace OutScribed.Modules.Jail.Application.Services
 {
-    public class JailService(IWriteRepository<JailedIpAddress> jailedIpRepository) 
+    public class JailService(IWriteRepository<IpAddress> jailedIpRepository) 
         : IJailService
     {
-        private readonly IWriteRepository<JailedIpAddress> _repository = jailedIpRepository;
+        private readonly IWriteRepository<IpAddress> _repository = jailedIpRepository;
 
         public async Task ProcessViolationAsync(string ipAddress, string emailAddress, JailReason reason)
         {
             // First, find if this IP is already jailed
-            var spec = new JailedIpAddressByIpSpecification(ipAddress);
-
+            var spec = new IpAddressByValueSpec(ipAddress);
             var jailedIp = await _repository.FirstOrDefaultAsync(spec);
 
             if (jailedIp == null)
             {
                 //First time jail for this IP: Create a temporary jail
-                var initialJailDuration = TimeSpan.FromMinutes(1); // Start with 1 minute
-                var newJail = JailedIpAddress.CreateTemporaryJail(IdGenerator.Generate(), ipAddress, reason, initialJailDuration);
-                await _repository.AddAsync(newJail);
+                jailedIp = IpAddress.Create(IdGenerator.Generate(), ipAddress, reason, DateTime.UtcNow);
+                await _repository.AddAsync(jailedIp);
             }
             else
             {
-                jailedIp.CheckAndExpire(); // Ensure status is up-to-date
-
-                if (jailedIp.CurrentStatus == JailStatus.ActivePermanent)
-                {
-                    return; // Already permanently banned, no further action for this specific violation.
-                }
-
-                if (jailedIp.TemporaryJailCount < 3) // Example: 1st, 2nd, 3rd strikes
-                {
-                    // Determine new duration or permanent ban based on existing count
-                    TimeSpan nextDuration = TimeSpan.FromMinutes(jailedIp.TemporaryJailCount * 5);
-                    jailedIp.ExtendTemporaryJail(reason, nextDuration);
-
-                }
-                else // Example: After 3 temporary jails, consider permanent
-                {
-                    // This is your permanent ban criteria
-                    jailedIp.PermanentlyBan(reason);
-                }
+                // Existing jailed IP: Handle repeated violation
+                //If it fails, no action is taken
+                jailedIp.HandleRepeatedViolation(reason, DateTime.UtcNow);
 
                 await _repository.UpdateAsync(jailedIp);
             }
@@ -56,8 +39,7 @@ namespace OutScribed.Modules.Jail.Application.Services
 
         public async Task<bool> IsCurrentlyJailedAsync(string ipAddress)
         {
-            var spec = new JailedIpAddressByIpSpecification(ipAddress);
-
+            var spec = new IpAddressByValueSpec(ipAddress);
             var jailedIp = await _repository.FirstOrDefaultAsync(spec);
 
             if (jailedIp == null)
@@ -65,11 +47,30 @@ namespace OutScribed.Modules.Jail.Application.Services
                 return false;
             }
 
-            // Always check/expire before determining status
-            jailedIp.CheckAndExpire();
-            await _repository.SaveAsync(); // Save the status change if expired
+            return jailedIp.IsCurrentlyJailed(DateTime.UtcNow);
+        }
 
-            return jailedIp.IsCurrentlyJailed();
+        public async Task ReleaseIpAddress(string ipAddress)
+        {
+            var spec = new IpAddressByValueSpec(ipAddress);
+            var jailedIp = await _repository.FirstOrDefaultAsync(spec);
+
+            if (jailedIp == null)
+            {
+                // Still important to handle non-existent case, though no log/event as per request.
+                return;
+            }
+
+            var result = jailedIp.UnjailManually(DateTime.UtcNow);
+
+            // Only save if a state change actually occurred
+            if (result)
+            {
+                await _repository.UpdateAsync(jailedIp);
+
+                await _repository.SaveAsync();
+            }
+            // No logging or event publishing here either, for consistency.
         }
     }
 }

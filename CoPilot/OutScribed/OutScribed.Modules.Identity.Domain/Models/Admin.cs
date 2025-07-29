@@ -7,15 +7,11 @@ namespace OutScribed.Modules.Identity.Domain.Models
     public class Admin : Entity
     {
         public Ulid AccountId { get; private set; }
-
         public RoleType Type { get; private set; }
-
         public DateTime AssignedAt { get; private set; }
-
         public DateTime LastUpdatedAt { get; private set; }
 
         public bool IsActive { get; private set; }
-
         private Admin() { }
 
         private Admin(RoleType type)

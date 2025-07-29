@@ -6,17 +6,11 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 {
     public class TaleHistory : Entity
     {
-
         public Ulid TaleId { get; private set; }
-
         public Tale Tale { get; private set; } = default!;
-
         public DateTime HappendedAt { get; private set; }
-
         public Ulid AdminId { get; private set; }
-
         public TaleStatus Status { get; private set; }
-
         public string? Notes { get; private set; }
 
         private TaleHistory() { }

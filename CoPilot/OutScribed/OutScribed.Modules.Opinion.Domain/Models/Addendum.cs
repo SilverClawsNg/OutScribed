@@ -7,11 +7,8 @@ namespace OutScribed.Modules.Analysis.Domain.Models
     public class Addendum : Entity
     {
         public Ulid InsightId { get; private set; }
-
         public Insight Insight { get; private set; } = default!;
-
         public DateTime CreatedAt { get; private set; }
-
         public string Text { get; private set; } = string.Empty;
 
         private Addendum() { }
@@ -25,7 +22,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
         public static Addendum Create(string text)
         {
 
-            // Perform validation checks
             var invalidFields = Validator.GetInvalidFields(
                [
                     new("Addendum Text", text, minLength: 30, maxLength: 4096),

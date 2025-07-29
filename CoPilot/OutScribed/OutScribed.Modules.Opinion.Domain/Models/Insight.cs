@@ -12,65 +12,36 @@ namespace OutScribed.Modules.Analysis.Domain.Models
     {
 
         public Ulid CreatorId { get; private set; }
-
         public DateTime CreatedAt { get; private set; }
-
         public Ulid TaleId { get; private set; }
-
         public string Title { get; private set; } = string.Empty;
-
         public string? Summary { get; private set; }
-
         public string? Text { get; private set; }
-
         public string? Slug { get; private set; }
-
         public Category Category { get; private set; }
-
         public string? Photo { get; private set; }
-
         public bool IsOnline { get; private set; }
-
         public Country? Country { get; private set; }
 
-
         private readonly List<Tag> _tags = [];
-
         public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
 
-
         private readonly List<Share> _shares = [];
-
         public IReadOnlyCollection<Share> Shares => _shares.AsReadOnly();
 
-
         private readonly List<Rating> _rating = [];
-
         public IReadOnlyCollection<Rating> Ratings => _rating.AsReadOnly();
 
-
-        private readonly List<Share> _sharers = [];
-
-        public IReadOnlyCollection<Share> Sharers => _sharers.AsReadOnly();
-
-
-        private readonly List<Follow> _followers = [];
-
-        public IReadOnlyCollection<Follow> Follows => _followers.AsReadOnly();
-
+        private readonly List<Follow> _follows = [];
+        public IReadOnlyCollection<Follow> Follows => _follows.AsReadOnly();
 
         private readonly List<Comment> _comments = [];
-
         public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
 
-
         private readonly List<Flag> _flags = [];
-
         public IReadOnlyCollection<Flag> Flags => _flags.AsReadOnly();
 
-
         private readonly List<Addendum> _addendums = [];
-
         public IReadOnlyCollection<Addendum> Addendums => _addendums.AsReadOnly();
 
         private Insight() { }
@@ -129,11 +100,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             Category = (Category)category;
 
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{title}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Basic));
-
         }
 
         public void UpdateSummary(string summary)
@@ -154,11 +120,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
             }
 
             Summary = summary;
-
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Summary));
 
         }
 
@@ -181,11 +142,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             Text = HtmlContentProcessor.Clean(text);
 
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Details));
-
         }
 
         public void UpdatePhoto(string photo)
@@ -205,11 +161,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
             }
 
             Photo = photo;
-
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            // ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Photo));
 
         }
 
@@ -231,11 +182,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
             }
 
             Country = country;
-
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            // ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Country));
 
         }
 
@@ -260,8 +206,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             IsOnline = true;
 
-            //Raise event
-
         }
 
         public void AddComment(Ulid id, Ulid commentatorId, string text)
@@ -272,7 +216,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             _comments.Add(Comment.Create(id, commentatorId, text));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddReply(Ulid id, Ulid commentId, Ulid commentatorId, string text)
@@ -283,7 +226,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             _comments.Add(comment.Reply(id, commentatorId, text));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddFlag(Ulid id, Ulid flaggerId, FlagType type)
@@ -294,29 +236,26 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             _flags.Add(Flag.Create(id, flaggerId, type));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddFollow(Ulid id, Ulid followerId)
         {
 
-            if (_followers.Any(c => c.Id == id))
+            if (_follows.Any(c => c.Id == id))
                 throw new AlreadyExistsException(id, "Insight Follow");
 
-            _followers.Add(Follow.Create(id, followerId));
+            _follows.Add(Follow.Create(id, followerId));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void RemoveFollow(Ulid id)
         {
 
-            var follower = _followers.FirstOrDefault(c => c.Id == id)
+            var follower = _follows.FirstOrDefault(c => c.Id == id)
                 ?? throw new DoesNotExistException(id, "Insight Follow");
 
-            _followers.Remove(follower);
+            _follows.Remove(follower);
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddRating(Ulid id, Ulid raterId, RatingType type)
@@ -327,18 +266,16 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             _rating.Add(Rating.Create(id, raterId, type));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
-        public void AddTag(Ulid id, Ulid tagId)
+        public void AddTag(Ulid tagId)
         {
 
-            if (_tags.Any(c => c.Id == id))
-                throw new AlreadyExistsException(id, "Insight Tag");
+            if (_tags.Any(c => c.Id == tagId))
+                throw new AlreadyExistsException(tagId, "Insight Tag");
 
-            _tags.Add(Tag.Create(id, tagId));
+            _tags.Add(Tag.Create(tagId));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddShare(Ulid id, Ulid sharerId, ContactType type, string handle)
@@ -349,7 +286,6 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             _shares.Add(Share.Create(id, sharerId, type, handle));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
     }

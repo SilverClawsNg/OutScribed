@@ -6,18 +6,12 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 {
     public class Rating : Entity
     {
-
         public DateTime RatedAt { get; private set; }
-
         public RatingType Type { get; private set; }
-
         public Ulid RaterId { get; private set; }
-
-
         public Ulid WatchlistId { get; private set; } = default!;
 
         public Watchlist Watchlist { get; private set; } = default!;
-
 
         private Rating() { }
 

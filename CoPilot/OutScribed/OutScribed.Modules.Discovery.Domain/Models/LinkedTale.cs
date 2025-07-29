@@ -5,8 +5,6 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 {
     public class LinkedTale : Entity
     {
-        public Ulid TaleId { get; private set; }
-
         public Ulid WatchlistId { get; private set; }
 
         public DateTime LinkedAt { get; private set; }
@@ -16,8 +14,8 @@ namespace OutScribed.Modules.Discovery.Domain.Models
         private LinkedTale() { }
 
         private LinkedTale(Ulid taleId)
+            : base(taleId)
         {
-            TaleId = taleId;
             LinkedAt = DateTime.UtcNow;
         }
 

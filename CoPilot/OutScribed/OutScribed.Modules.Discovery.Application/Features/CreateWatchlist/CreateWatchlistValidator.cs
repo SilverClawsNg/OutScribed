@@ -10,7 +10,7 @@ namespace OutScribed.Modules.Discovery.Application.Features.CreateWatchlist
             RuleFor(x => x.Summary)
                 .NotNull().WithMessage("Summary is required.")
                 .NotEmpty().WithMessage("Summary is required.")
-                .MaximumLength(512).WithMessage("Summary must not exceed 512 characters.");
+                .MaximumLength(2096).WithMessage("Summary must not exceed 2096 characters.");
 
             RuleFor(x => x.SourceText)
                 .NotEmpty().WithMessage("Source text is required.")

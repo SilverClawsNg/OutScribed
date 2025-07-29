@@ -5,14 +5,10 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 {
     public class Follow : Entity
     {
-
         public DateTime FollowedAt { get; private set; }
-
         public Ulid FollowerId { get; private set; }
 
-
         public Ulid InsightId { get; private set; } = default!;
-
         public Insight Insight { get; private set; } = default!;
 
         private Follow() { }

@@ -9,7 +9,14 @@ namespace OutScribed.Modules.Jail.Application.Interfaces
 {
     public interface IJailService
     {
+        
         Task ProcessViolationAsync(string ipAddress, string emailAddress, JailReason reason);
+        
         Task<bool> IsCurrentlyJailedAsync(string ipAddress);
+
+        //Manually releases an Ip Address from jail
+        Task ReleaseIpAddress(string ipAddressValue);
+
+
     }
 }

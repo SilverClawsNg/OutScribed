@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using OutScribed.SharedKernel.Abstract.OutScribed.SharedKernel.Abstract;
 using OutScribed.SharedKernel.Abstract;
+using OutScribed.SharedKernel.Interfaces;
 
 namespace OutScribed.Infrastructure.Persistence.Writes.Repository
 {

@@ -7,28 +7,18 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 {
     public class Comment : Entity
     {
-
         public DateTime CommentedAt { get; private set; }
-
         public Ulid CommentatorId { get; private set; }
-
         public string Text { get; private set; } = default!;
-
         public Ulid? ParentId { get; set; }
-
         public Ulid WatchlistId { get; private set; } = default!;
-
-
 
         public Comment? Parent { get; private set; }
 
         public Watchlist Watchlist { get; private set; } = default!;
 
-
         private readonly List<Comment> _replies = [];
-
         public IReadOnlyCollection<Comment> Replies => _replies.AsReadOnly();
-
 
         private Comment() { }
 

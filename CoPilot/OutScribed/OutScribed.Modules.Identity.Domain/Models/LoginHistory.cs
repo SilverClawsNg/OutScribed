@@ -6,11 +6,8 @@ namespace OutScribed.Modules.Identity.Domain.Models
     public class LoginHistory : Entity
     {
         public Ulid AccountId { get; private set; }
-
         public Account Account { get; private set; } = default!;
-
         public DateTime LoggedAt { get; private set; }
-
         public string IpAddress { get; private set; } = string.Empty;
 
         private LoginHistory() { }

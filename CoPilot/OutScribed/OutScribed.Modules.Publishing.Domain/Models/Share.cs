@@ -6,20 +6,12 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 {
     public class Share : Entity
     {
-
         public DateTime SharedAt { get; private set; }
-
         public Ulid? SharerId { get; private set; }
-
         public ContactType Type { get; private set; }
-
         public string? Handle { get; private set; } = default!;
-
-
         public Ulid TaleId { get; private set; } = default!;
-
         public Tale Tale { get; private set; } = default!;
-
 
         private Share() { }
 
@@ -47,8 +39,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
             {
                 throw new InvalidParametersException(invalidFields);
             }
-
-            //raise event
 
             return new Share(id, sharerId, contact);
         }

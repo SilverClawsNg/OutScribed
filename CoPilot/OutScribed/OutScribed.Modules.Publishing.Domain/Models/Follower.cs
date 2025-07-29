@@ -7,14 +7,9 @@ namespace OutScribed.Modules.Publishing.Domain.Models
     {
     
         public DateTime FollowedAt { get; private set; }
-
         public Ulid FollowerId { get; private set; }
-
-
         public Ulid TaleId { get; private set; } = default!;
-
         public Tale Tale { get; private set; } = default!;
-
         private Follower() { }
 
         private Follower(Ulid id, Ulid followerId)
@@ -37,8 +32,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
             {
                 throw new InvalidParametersException(invalidFields);
             }
-
-            //raise event
 
             return new Follower(id, followerId);
         }

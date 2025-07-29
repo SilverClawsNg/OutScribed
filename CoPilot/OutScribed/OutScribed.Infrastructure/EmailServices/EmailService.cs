@@ -1,4 +1,6 @@
-﻿namespace OutScribed.Infrastructure.EmailServices
+﻿using OutScribed.SharedKernel.Interfaces;
+
+namespace OutScribed.Infrastructure.EmailServices
 {
     public class EmailService : IEmailService
     {

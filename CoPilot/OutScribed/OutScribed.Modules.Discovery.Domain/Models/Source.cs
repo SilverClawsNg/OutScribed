@@ -5,11 +5,8 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 {
     public class Source : ValueObject
     {
-
         public string Text { get; private set; } = string.Empty;
-
         public string Url { get; private set; } = string.Empty;
-
         private Source() { }
 
         private Source(string url, string text)
@@ -21,8 +18,6 @@ namespace OutScribed.Modules.Discovery.Domain.Models
         public static Source Create(string text, string url)
         {
 
-            // Perform validation checks
-          
             var invalidFields = Validator.GetInvalidFields(
              [
                   new("Source Text", text, maxLength: 28),

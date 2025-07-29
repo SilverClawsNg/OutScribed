@@ -5,32 +5,23 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 {
     public class Tag : Entity
     {
-
         public DateTime TaggedAt { get; private set; }
-
-        public Ulid TagId { get; private set; }
-
-
         public Ulid InsightId { get; private set; } = default!;
-
         public Insight Insight { get; private set; } = default!;
-
 
         private Tag() { }
 
-        private Tag(Ulid id, Ulid tagId)
-            : base(id)
+        private Tag(Ulid tagId)
+            : base(tagId)
         {
             TaggedAt = DateTime.UtcNow;
-            TagId = tagId;
         }
 
-        public static Tag Create(Ulid id, Ulid tagId)
+        public static Tag Create(Ulid tagId)
         {
 
             var invalidFields = Validator.GetInvalidFields(
             [
-                    new("Insight Tag ID", id),
                     new("Tag ID", tagId)
              ]
            );
@@ -42,7 +33,7 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 
             //raise event
 
-            return new Tag(id, tagId);
+            return new Tag(tagId);
         }
     }
 }

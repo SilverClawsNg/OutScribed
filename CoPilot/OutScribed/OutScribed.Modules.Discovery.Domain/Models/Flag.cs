@@ -7,15 +7,10 @@ namespace OutScribed.Modules.Discovery.Domain.Models
 
     public class Flag : Entity
     {
-
         public DateTime FlaggedAt { get; private set; }
-
         public FlagType Type { get; private set; }
-
         public Ulid FlaggerId { get; private set; }
-
         public Ulid WatchlistId { get; private set; } = default!;
-
         public Watchlist Watchlist { get; private set; } = default!;
 
         private Flag() { }
@@ -43,8 +38,6 @@ namespace OutScribed.Modules.Discovery.Domain.Models
             {
                 throw new InvalidParametersException(invalidFields);
             }
-
-            //raise event
 
             return new Flag(id, flaggerId, type);
         }

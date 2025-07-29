@@ -5,11 +5,8 @@ namespace OutScribed.Modules.Identity.Domain.Models
 {
     public class RefreshToken : ValueObject
     {
-
         public string Token { get; private set; } = string.Empty;
-
         public DateTime ExpiresAt { get; private set; }
-
         private RefreshToken() { }
 
         private RefreshToken(string token)

@@ -7,17 +7,11 @@ namespace OutScribed.Modules.Identity.Domain.Models
     public class Writer : Entity
     {
         public Ulid AccountId { get; private set; }
-
         public string Address { get; private set; } = string.Empty;
-
         public Country Country { get; private set; }
-
         public string Application { get; private set; } = string.Empty;
-
         public DateTime AppliedAt { get; private set; }
-
         public DateTime ApprovedAt { get; private set; }
-
         public bool IsActive { get; private set; }
 
         private Writer() { }

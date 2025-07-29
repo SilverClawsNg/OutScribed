@@ -2,7 +2,7 @@
 
 namespace OutScribed.Modules.Publishing.Application.Features.CreateTale
 {
-    public record CreateTaleResponse(Guid Id, DateTime CreatedAt, string Title,
+    public record CreateTaleResponse(Ulid Id, DateTime CreatedAt, string Title,
         TaleStatus Status, Category Category)
     {
         public Ulid Id { get; set; } = Id;

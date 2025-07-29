@@ -9,7 +9,6 @@ namespace OutScribed.Modules.Identity.Domain.Models
     {
 
         public string Hash { get; init; } = default!;
-
         public string Salt { get; init; } = default!;
 
         private Password() { }

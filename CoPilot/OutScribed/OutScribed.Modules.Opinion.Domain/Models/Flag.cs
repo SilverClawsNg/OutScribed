@@ -4,18 +4,12 @@ using OutScribed.SharedKernel.Enums;
 
 namespace OutScribed.Modules.Analysis.Domain.Models
 {
-
     public class Flag : Entity
     {
-
         public DateTime FlaggedAt { get; private set; }
-
         public FlagType Type { get; private set; }
-
         public Ulid FlaggerId { get; private set; }
-
         public Ulid InsightId { get; private set; } = default!;
-
         public Insight Insight { get; private set; } = default!;
 
         private Flag() { }

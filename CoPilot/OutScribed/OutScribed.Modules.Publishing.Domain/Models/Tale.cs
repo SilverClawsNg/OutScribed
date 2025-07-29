@@ -9,66 +9,36 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 {
     public class Tale : AggregateRoot
     {
-
         public string? Slug { get; private set; }
-
         public string Title { get; private set; } = string.Empty;
-
         public Ulid CreatorId { get; private set; }
-
         public DateTime CreatedAt { get; private set; }
-
         public string? Text { get; private set; }
-
         public Category Category { get; private set; }
-
         public string? Photo { get; private set; }
-
         public string? Summary { get; private set; }
-
         public TaleStatus Status { get; private set; }
-
         public Country? Country { get; private set; }
 
-
-
         private readonly List<Tag> _tags = [];
-
         public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
 
-
         private readonly List<Share> _shares = [];
-
         public IReadOnlyCollection<Share> Shares => _shares.AsReadOnly();
 
-
         private readonly List<Rating> _rating = [];
-
         public IReadOnlyCollection<Rating> Ratings => _rating.AsReadOnly();
 
-
-        private readonly List<Share> _sharers = [];
-
-        public IReadOnlyCollection<Share> Sharers => _sharers.AsReadOnly();
-
-
         private readonly List<Follower> _followers = [];
-
         public IReadOnlyCollection<Follower> Followers => _followers.AsReadOnly();
 
-
         private readonly List<Comment> _comments = [];
-
         public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
 
-
         private readonly List<Flag> _flags = [];
-
         public IReadOnlyCollection<Flag> Flags => _flags.AsReadOnly();
 
-
         private readonly List<TaleHistory> _histories = [];
-
         public IReadOnlyList<TaleHistory> Histories => [.. _histories];
 
         private Tale() { }
@@ -84,7 +54,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
             _histories = [history];
 
         }
-
 
         public static Tale Create(Ulid creatorId, string title, Category category)
         {
@@ -106,11 +75,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             var tale = new Tale(taleId, creatorId, title, category,
                 TaleHistory.Create(TaleStatus.Created, creatorId, null));
-
-            //Raise new event
-
-            //tale.AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, adminId, $"{title}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Create_Tale));
 
             return tale;
 
@@ -138,11 +102,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             Category = (Category)category;
 
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{title}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Basic));
-
         }
 
         public void UpdateSummary(string summary)
@@ -163,11 +122,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
             }
 
             Summary = summary;
-
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Summary));
 
         }
 
@@ -190,11 +144,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             Text = HtmlContentProcessor.Clean(text);
 
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            //   ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Details));
-
         }
 
         public void UpdatePhoto(string photo)
@@ -214,11 +163,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
             }
 
             Photo = photo;
-
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            // ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Photo));
 
         }
 
@@ -240,11 +184,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
             }
 
             Country = country;
-
-            //Raise event
-
-            //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-            // ActivityTypes.Tale, ActivityConstructorTypes.Update_Tale_Country));
 
         }
 
@@ -288,22 +227,13 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
                 Slug = UrlSlugGenerator.Generate(CreatedAt, username, Title);
 
-                //Raise event - Published
-
-                //SaveFollow(CreatorId, true);
-
-                //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{s}*{Title.Value}",
-                //ActivityTypes.Tale, ActivityConstructorTypes.Tale_Published));
             }
             else
             {
                 if (status == TaleStatus.Submitted)
                 {
 
-                    //Raise event - submitted
-
-                    //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}",
-                    //ActivityTypes.Tale, ActivityConstructorTypes.Tale_Submitted));
+               
                 }
                 else
                 {
@@ -325,10 +255,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
                          : Status == TaleStatus.RejectedByPublisher ? "Rejected (Publication Vetting)"
                          : "Error";
 
-                    //Raise event - status updated
-
-                    //AddDomainEvent(new ActivityUpdatedEvent(DateTime.UtcNow, CreatorId, $"{Title.Value}*{StatusToString}",
-                    //ActivityTypes.Tale, ActivityConstructorTypes.Tale_Status_Updated));
                 }
             }
 
@@ -342,7 +268,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _comments.Add(Comment.Create(id, commentatorId, text));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddReply(Ulid id, Ulid commentId, Ulid commentatorId, string text)
@@ -353,7 +278,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _comments.Add(comment.Reply(id, commentatorId, text));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddFlag(Ulid id, Ulid flaggerId, FlagType type)
@@ -364,7 +288,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _flags.Add(Flag.Create(id, flaggerId, type));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddFollower(Ulid id, Ulid followerId)
@@ -375,7 +298,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _followers.Add(Follower.Create(id, followerId));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void RemoveFollower(Ulid id)
@@ -386,7 +308,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _followers.Remove(follower);
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddRating(Ulid id, Ulid raterId, RatingType type)
@@ -397,18 +318,16 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _rating.Add(Rating.Create(id, raterId, type));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
-        public void AddTag(Ulid id, Ulid tagId)
+        public void AddTag(Ulid tagId)
         {
 
-            if (_tags.Any(c => c.Id == id))
-                throw new AlreadyExistsException(id, "Insight Tag");
+            if (_tags.Any(c => c.Id == tagId))
+                throw new AlreadyExistsException(tagId, "Insight Tag");
 
-            _tags.Add(Tag.Create(id, tagId));
+            _tags.Add(Tag.Create(tagId));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
 
         public void AddShare(Ulid id, Ulid sharerId, ContactType type, string handle)
@@ -419,7 +338,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 
             _shares.Add(Share.Create(id, sharerId, type, handle));
 
-            // Raise InsightCommentAddedEvent { InsightId, CommentId, UserId, Text, CreatedAt }
         }
     }
 }

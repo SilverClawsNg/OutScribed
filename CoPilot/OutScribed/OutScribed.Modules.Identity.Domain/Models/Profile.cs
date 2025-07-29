@@ -9,19 +9,12 @@ namespace OutScribed.Modules.Identity.Domain.Models
     {
 
         public Ulid AccountId { get; private set; }
-
         public Account Account { get; private set; } = default!;
-
         public string? Photo { get; private set; }
-
         public string Title { get; private set; } = string.Empty!;
-
         public string? Bio { get; private set; }
-
         public bool IsAnnonymous { get; private set; }
-
         public DateTime CreatedAt { get; private set; }
-
 
         private Profile() { }
 
@@ -36,7 +29,6 @@ namespace OutScribed.Modules.Identity.Domain.Models
         public void Update(string title, string? bio, string? photo, bool isHidden)
         {
 
-            //Ensure a photo exists to create profile
             if(string.IsNullOrWhiteSpace(photo) && Photo == null)
             {
                 throw new PhotoNotFoundException();

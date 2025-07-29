@@ -6,18 +6,12 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 {
     public class Rating : Entity
     {
-
         public DateTime RatedAt { get; private set; }
-
         public RatingType Type { get; private set; }
-
         public Ulid RaterId { get; private set; }
 
-
         public Ulid InsightId { get; private set; } = default!;
-
         public Insight Insight { get; private set; } = default!;
-
 
         private Rating() { }
 

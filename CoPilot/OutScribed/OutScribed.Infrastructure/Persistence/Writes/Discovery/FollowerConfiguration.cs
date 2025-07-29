@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OutScribed.Modules.Discovery.Domain.Models;
+using OutScribed.Modules.Identity.Domain.Models;
 
 namespace OutScribed.Infrastructure.Persistence.Writes.Discovery
 {

@@ -7,28 +7,18 @@ namespace OutScribed.Modules.Publishing.Domain.Models
 {
     public class Comment : Entity
     {
-
         public DateTime CommentedAt { get; private set; }
-
         public Ulid CommentatorId { get; private set; }
-
         public string Text { get; private set; } = default!;
-
         public Ulid? ParentId { get; set; }
-
         public Ulid TaleId { get; private set; } = default!;
 
-
-
         public Comment? Parent { get; private set; }
-
         public Tale Tale { get; private set; } = default!;
-
 
         private readonly List<Comment> _replies = [];
 
         public IReadOnlyCollection<Comment> Replies => _replies.AsReadOnly();
-
 
         private Comment() { }
 
@@ -45,7 +35,6 @@ namespace OutScribed.Modules.Publishing.Domain.Models
         public static Comment Create(Ulid id, Ulid commentatorId, string text, Ulid? parentId = null)
         {
 
-            // Perform validation checks
             var invalidFields = Validator.GetInvalidFields(
                 [
                       new("Comment ID", id),

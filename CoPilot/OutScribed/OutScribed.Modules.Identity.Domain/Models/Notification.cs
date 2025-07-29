@@ -7,17 +7,12 @@ namespace OutScribed.Modules.Identity.Domain.Models
     public class Notification : Entity
     {
         public Ulid AccountId { get; set; }
-
         public Account Account { get; private set; } = default!;
-
         public DateTime HappenedAt { get; set; }
-
         public string Text { get; set; } = string.Empty;
 
         public NotificationType Type { get; set; }
-
         public ContentType Content { get; set; }
-
         public bool HasRead { get; set; }
 
         private Notification() { }

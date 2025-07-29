@@ -6,23 +6,15 @@ namespace OutScribed.Modules.Analysis.Domain.Models
 {
     public class Share : Entity
     {
-
         public DateTime SharedAt { get; private set; }
-
         public Ulid? SharerId { get; private set; }
-
         public ContactType Type { get; private set; }
-
         public string? Handle { get; private set; } = default!;
 
-
         public Ulid InsightId { get; private set; } = default!;
-
         public Insight Insight { get; private set; } = default!;
 
-
         private Share() { }
-
         private Share(Ulid id, Ulid sharerId, ContactType contact)
             : base(id)
         {
