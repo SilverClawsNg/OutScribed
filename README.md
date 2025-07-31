@@ -128,19 +128,22 @@ This section provides a summary of the project architecture
 
 - [x] tests
 
-### 1.5 Patterns
+### 1.5 Data Access Strategy: Repository and Specification Patterns
 
-* This section discusses patterns used in this application
+* This section discusses data access for write models
+* Our application employs a robust data access strategy based on the Repository and Specification patterns, ensuring a clean separation between the domain model and persistence concerns.
 
-### 1.5.1 Specification Pattern
+#### 1.5.1 Generic Write Repository (IWriteRepository<T>):
+* This generic interface handles most common data operations for our Aggregate Roots (e.g., adding, retrieving by ID, updating, deleting).
+* It integrates seamlessly with a Unit of Work (SaveAsync) and allows for flexible querying. Most importantly, it supports the Specification pattern for defining queries.
 
-* The Specification Pattern is generally considered the most aligned DDD approach for encapsulating querying logic that is relevant to the domain.
-* A "Specification" is a self-contained query definition.
-- [x] Process
-	- [ ] Define a generic ISpecification<T> interface.
-	- [ ] Define a base specification abstract class.
- 	- [ ] Define a specification evaluator which translates your domain-specific specification object into an executable LINQ query that Entity Framework Core (or any other ORM supporting IQueryable) can understand and translate into SQL.
-  	- [ ] Define specification for domain queries as needed
+#### 1.5.2 Specification Pattern (ISpecification<T> and BaseSpecification<T>):
+* Queries that can be expressed as combinations of filtering (Criteria), eager loading (Includes), sorting (OrderBy/OrderByDescending), and paging (Skip/Take) are encapsulated within concrete Specification classes.
+* These specifications are then passed to the IWriteRepository<T> methods (e.g., ListAsync, FirstOrDefaultAsync, AnyAsync, CountAsync), keeping query logic within the domain or application layer while the infrastructure layer (WriteRepository<T, TDbContext>) handles their execution against the database.
+
+#### 1.5.3 Specific Read Repositories (e.g., ITempUserRepository):
+* For highly specialized or complex queries that involve projections (selecting specific columns into DTOs), aggregations (e.g., counting distinct values), or those that cannot be elegantly expressed with the generic Specification pattern, we introduce dedicated read-specific repository interfaces.
+* These interfaces (and their implementations) are tailored to particular querying needs, ensuring optimal performance and clarity for read-heavy operations without cluttering the generic IWriteRepository.
 
 ### 1.6 Error Handling
 
@@ -164,6 +167,51 @@ This section provides a summary of the project architecture
   2. OutScribedHangfireDb - This would hold Hangfire jobs (scheduled and enqueued)
   3. OutScribedLogDb - This would hold all logs created by Serilog
 
+### 1.8 Domain Input Validation (Preconditions)
+
+* This section discusses domain input validation
+* The domain layer strictly enforces input preconditions to maintain data integrity and prevent domain objects from entering an invalid state.
+* This is achieved through a dedicated validation mechanism
+	1. Validator Utility: A static utility class responsible for performing comprehensive checks on input parameters.
+	2. ValidationField: A flexible class that encapsulates a field's name, its value, and various constraints (e.g., minimum/maximum length for strings, numerical ranges, optionality). This allows for declarative definition of validation rules.
+	3. InvalidParameters: A simple struct used to capture details of individual validation failures, including the FieldName and FieldValue that failed.
+	4. InvalidParametersException: A custom exception that is thrown when one or more input preconditions are violated. This exception contains a list of InvalidParameters, providing detailed information about what went wrong.
+* Process of Validating Domain Fields:
+	1. Define Fields and Constraints: Within the constructors or public methods of our domain aggregates (e.g., Account aggregate's Register method), input parameters are wrapped into ValidationField objects, specifying their validation rules (e.g., new ValidationField("Email Address", emailAddress, minLength: 3, maxLength: 255)).
+ 	2. Execute Validation: The Validator.Validate() method is called with a collection of these ValidationField objects.
+  	3. Automatic Checks: The Validator performs various checks:
+	  	* Required Fields: Ensures non-optional fields are not null, empty, or whitespace (for strings).
+	  	* Length Constraints: Verifies string lengths against MinLength and MaxLength rules.
+	  	* Numeric Ranges: Checks numeric values (integers, longs, decimals) against MinValue and MaxValue.
+	  	* Enum Validity: Confirms that enum values correspond to defined enum members.
+  	4. Exception on Failure: If any validation rule is violated, the Validator collects all InvalidParameters and immediately throws an InvalidParametersException. This prevents the domain operation from proceeding with corrupt or incomplete data, acting as a crucial "guard clause."
+
+### 1.9 Event-Driven Communication with MassTransit
+
+* Our backend leverages an event-driven architecture, powered by MassTransit, to facilitate highly decoupled and scalable communication between different modules. 
+* This pattern ensures that modules can react to relevant occurrences without direct dependencies on each other.
+* Process Overview:
+
+#### 1.9.1 Event Publishing (IEventPublisher):
+* When a module (e.g., the Onboarding module detects an IP address violation) needs to signal a significant occurrence, it publishes a domain event.
+* This is done via a dedicated IEventPublisher interface (e.g., IEventPublisher.IpAddressViolated_Jail()), which abstracts away the underlying messaging infrastructure.
+
+#### 1.9.2 Event Definition (e.g., IpAddressViolationEvent):
+* Each event is a simple, immutable data contract that describes what happened, carrying only the necessary information (e.g., IpAddress, EmailAddress, JailReason).
+
+#### 1.9.3 Event Consumption (IConsumer & Specific Consumers):
+* Dedicated event consumers (e.g., IpAddressViolationEventConsumer), implementing the MassTransit.IConsumer<TEvent> interface, subscribe to specific event types.
+* When an event is published, MassTransit routes it to the appropriate consumer(s).
+
+#### 1.9.4 Module Interaction:
+* Upon receiving an IpAddressViolationEvent, the IpAddressViolationEventConsumer then calls the relevant method on the target module's application service (e.g., IJailService.ProcessViolationAsync()).
+* This service, in turn, interacts with the domain aggregate (e.g., IpAddress) to update its state.
+
+#### 1.9.5 Benefits:
+
+* Decoupling: Modules do not directly call each other, reducing tight coupling and making individual modules easier to develop, test, and deploy independently.
+* Scalability: Events enable asynchronous processing, allowing the system to handle high loads by distributing work across multiple consumers.
+* Auditability: Events provide a clear, immutable log of significant actions within the system.
 
 ---
 
@@ -233,8 +281,7 @@ This section provides description of the ipaddress jailing work flows
   		* If permanently banned, it creates and attaches a new history
     		* If this is its threshold number of violations, it is permanently banned 
     		* Else it calculates its jail time, creates and atatches a new history
-* If it does not exist, slugify the name and create a new tag
-* Returns the Id of the tag
+
 
 ### 2.8 IsCurrentlyJailed
 * Checks if an Ip Address is currently in jail
@@ -424,8 +471,8 @@ This section provides description of the identity work flows.
 		 - [ ] AppliedAt (DateTime) <!-- Timestamp of application to become writer --!>
 		 - [ ] ApprovedAt (DateTime) <!-- Timestamp of approval to become writer --!>
    		 - [ ] LastUpdatedAt (DateTime) <!-- Timestamp of last update --!>
-      	 - [ ] ApprovedBy (Ulid) <!-- Id of Admin who approved application --!>
-      	 - [ ] LastUpdatedBy (Ulid) <!-- Id of Admin with last update --!>
+      	 	 - [ ] ApprovedBy (Ulid) <!-- Id of Admin who approved application --!>
+      	 	 - [ ] LastUpdatedBy (Ulid) <!-- Id of Admin with last update --!>
 		 - [ ] IsActive (bool) <!-- If true, has privilege to publish tale --!>
 		 - [ ] Country (enum) <!-- Country of origin/location --!>
 		 - [ ] Application (string) <!-- Location of writer's application in Adobe PDF on file. Storage is on DigitalOcean Space using AW3 SDK --!>
@@ -446,7 +493,6 @@ This section provides description of the identity work flows.
 * UpdateProfile <!-- Updates user's title, bio, etc. --!>
 * UpdateContact <!-- Create or update a user's contact --!>
 * SendToken <!-- Generates and sends a password reset token --!>
-* ResendToken <!-- Generates and resends a password reset token --!>
 * ResetPassword <!-- Verifies a password reset token and changes user's password --!>
 * ChangePassword <!-- Updates a user's password --!>
 * ApplyAsWriter <!-- Attaches a new application to become a writer --!>
@@ -621,46 +667,23 @@ This section provides description of the identity work flows.
 * Save changes
 * Returns response
 
-### 4.11 ResendToken
-* Generates and returns a verification token
-
+### 4.11 ResetPassword
+* Resets a password
+  
 #### 4.11.1 Request
-* Id (Ulid) 
+* Id (Ulid)
+* Password (string)
+* Token (string)
 
 #### 4.11.2 Response
 * Ok
 
 #### 4.11.3 Validation
-* EmailAddress <!-- Not null. Not empty. 255.
-
-#### 4.11.4 Work flow
-* Receives and validates request
-* Get Account by email address. If null, throw an exception.
-* Checks if updates are locked and lock time has not expired i.e. LockUpdates is true and LastUpdated is less than 30 minutes. It true, throw an exception.
-* Checks if it is less than 60 seconds since last token resent i.e. LastUpdated is less than 60 seconds. If true, lock resends, save changes, and throw an exception.
-* Checks if too many token resends in last 10 minutes i.e. LastUpdated is less than 10 minutes and ResendsCounter is 5. If true, lock resends, save changes, and throw an exception.
-* Else generates a new verification token
-* Schedules an email with verification token
-* Save changes
-* Returns response
-
-### 4.12 ResetPassword
-* Resets a password
-  
-#### 4.12.1 Request
-* Id (Ulid)
-* Password (string)
-* Token (string)
-
-#### 4.12.2 Response
-* Ok
-
-#### 4.12.3 Validation
 * Id <!-- Not null. Not empty. --!>
 * Password <!-- Not null. Not empty. Min: 8 --!>
 * Token <!-- Not null. Not empty. Size: 6. --!>
 
-#### 4.12.4 Work flow
+#### 4.11.4 Work flow
 * Receives and validates request
 * Gets Account exists with Id. If null, throw an exception.
 * Compares Token. If false, throw an exception.
@@ -668,15 +691,15 @@ This section provides description of the identity work flows.
 * Save changes
 * Returns request
 
-### 4.13 UpdatePassword
+### 4.12 UpdatePassword
 * Changes an existing password
   
-#### 4.13.1 Request
+#### 4.12.1 Request
 * Id (Ulid) <!-- From HttpContext -- !>
 * OldPassword (string)
 * NewPassword (string)
 
-#### 4.13.2 Response
+#### 4.12.2 Response
 * Ok
 
 #### 4.13.3 Validation
@@ -684,7 +707,7 @@ This section provides description of the identity work flows.
 * OldPassword <!-- Not null. Not empty. Min: 8 --!>
 * NewPassword <!-- Not null. Not empty. Min: 8 --!>
 
-#### 4.13.4 Work flow
+#### 4.12.4 Work flow
 * Receives and validates request
 * Gets Account with Id. If null, throw an exception.
 * Compares old password. If false, throw an exception.
@@ -814,8 +837,8 @@ This section provides description of the identity work flows.
 * Save changes
 * Returns request
 
-### 4.19 UpdateAdmin
-* Updates an admin's privilege i.e. toggles IsActive
+### 4.19 UpdateStatus
+* Updates an admin's status i.e. toggles IsActive
 * Requires an Admin role of type: SuperAdmin to perform this operation
   
 #### 4.19.1 Request
@@ -828,8 +851,8 @@ This section provides description of the identity work flows.
 
 #### 4.19.3 Validation
 * Id <!-- Not null. Not empty. --!>
-* AssigneeId <!-- Not null. Not empty. --!>
-* RoleType <!-- Not null. IsEnum --!>
+* AdminId <!-- Not null. Not empty. --!>
+* IsActive <!-- Not null. --!>
 
 #### 4.19.4 Work flow
 * Receives and validates request
@@ -2671,8 +2694,6 @@ This section provides description of the discovery work flows.
 * Save changes
 * Publish event: WatchlistCommentFlagged
 * Returns response
-
-
 
 
 
